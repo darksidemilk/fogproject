@@ -28,6 +28,7 @@ class PrinterManagementPage extends FOGPage {
             'Port',
             'File',
             'IP',
+            'Config File',
             'Edit'
         );
         $this->templates = array(
@@ -39,6 +40,7 @@ class PrinterManagementPage extends FOGPage {
             '${port}',
             '${file}',
             '${ip}',
+            '${configFile}',
             '<a href="?node=printer&sub=edit&id=${id}" title="Edit"><i class="icon fa fa-pencil"></i></a><a href="?node=printer&sub=delete&id=${id}" title="Delete"><i class="icon fa fa-minus-circle"></i></>',
         );
         $this->attributes = array(
@@ -67,6 +69,7 @@ class PrinterManagementPage extends FOGPage {
                 'port'=>$Printer->get('port'),
                 'file'=>$Printer->get('file'),
                 'ip'=>$Printer->get('ip'),
+                'configFile'=>$Printer->get('configFile'),
                 'desc'=>$Printer->get('description'),
             );
             unset($Printer);
@@ -86,6 +89,7 @@ class PrinterManagementPage extends FOGPage {
                 'port'=>$Printer->get('port'),
                 'file'=>$Printer->get('file'),
                 'ip'=>$Printer->get('ip'),
+                'configFile'=>$Printer->get('configFile'),
                 'desc'=>$Printer->get('description'),
             );
             unset($Printer);
@@ -144,6 +148,7 @@ class PrinterManagementPage extends FOGPage {
                 sprintf('%s*',_('Printer Model')) => '<input type="text" name="model" value="${printer_model}"/>',
                 sprintf('%s*',_('Printer INF File')) => '<input type="text" name="inf" value="${printer_inf}"/>',
                 sprintf('%s*',_('Printer IP')) => '<input type="text" name="ip" value="${printer_ip}"/>',
+                sprintf('%s*',_('Printer Config File')) => '<input type="text" name="config" value="${printer_configFile}"/>',
             );
             break;
         }
@@ -157,6 +162,7 @@ class PrinterManagementPage extends FOGPage {
                 'printer_model'=>$_REQUEST['model'],
                 'printer_inf'=>$_REQUEST['inf'],
                 'printer_ip'=>$_REQUEST['ip'],
+                'printer_config'=>$_REQUEST['configFile'],
                 'desc'=>$_REQUEST['description'],
             );
         }
@@ -180,6 +186,7 @@ class PrinterManagementPage extends FOGPage {
                 $_REQUEST['inf'] = trim($_REQUEST['inf']);
                 $_REQUEST['model'] = trim($_REQUEST['model']);
                 $_REQUEST['ip'] = trim($_REQUEST['ip']);
+                $_REQUEST['configFile'] = trim($_REQUEST['configFile']);
                 $_REQUEST['description'] = trim($_REQUEST['description']);
                 if (isset($_REQUEST['local'])) $printertype = 'Local';
                 else if (isset($_REQUEST['network'])) $printertype = 'Network';
@@ -198,6 +205,7 @@ class PrinterManagementPage extends FOGPage {
                     ->set('file',$_REQUEST['inf'])
                     ->set('port',$_REQUEST['port'])
                     ->set('ip',$_REQUEST['ip']);
+                    ->set('configFile',$_REQUEST['configFile']);
                 if (!$Printer->save()) throw new Exception(_('Could not create printer'));
                 $this->HookManager->processEvent('PRINTER_ADD_SUCCESS',array('Printer'=>&$Printer));
                 $this->setMessage(_('Printer was created! Editing now!'));
@@ -265,6 +273,7 @@ class PrinterManagementPage extends FOGPage {
                 sprintf('%s*',_('Printer Model'))=>'<input type="text" name="model" value="${printer_model}"/>',
                 sprintf('%s*',_('Printer INF File'))=>'<input type="text" name="inf" value="${printer_inf}"/>',
                 sprintf('%s*',_('Printer IP'))=>'<input type="text" name="ip" value="${printer_ip}"/>',
+                sprintf('%s*',_('Printer Config File'))=>'<input type="text" name="config" value="${printer_configFile}"/>',
             );
             break;
         }
@@ -278,6 +287,7 @@ class PrinterManagementPage extends FOGPage {
                 'printer_model'=>$this->obj->get('model'),
                 'printer_inf'=>$this->obj->get('file'),
                 'printer_ip'=>$this->obj->get('ip'),
+                'printer_configFile'=>$this->obj->get('configFile'),
                 'desc'=>$this->obj->get('description'),
             );
         }
@@ -302,6 +312,7 @@ class PrinterManagementPage extends FOGPage {
                 $_REQUEST['inf'] = trim($_REQUEST['inf']);
                 $_REQUEST['model'] = trim($_REQUEST['model']);
                 $_REQUEST['ip'] = trim($_REQUEST['ip']);
+                $_REQUEST['configFile'] = trim($_REQUEST['configFile']);
                 $_REQUEST['description'] = trim($_REQUEST['description']);
                 if (isset($_REQUEST['local']) && (empty($_REQUEST['alias']) || empty($_REQUEST['port']) || empty($_REQUEST['inf']) || empty($_REQUEST['model']) || empty($_REQUEST['ip']))) throw new Exception(_('You must specify the alias, port, model, IP, and inf. Unable to create!'));
                 else if (isset($_REQUEST['iprint']) && (empty($_REQUEST['alias']) || empty($_REQUEST['port']))) throw new Exception(_('You must specify the alias and port. Unable to create!'));
@@ -324,6 +335,7 @@ class PrinterManagementPage extends FOGPage {
                     ->set('port',$_REQUEST['port'])
                     ->set('file',$_REQUEST['inf'])
                     ->set('ip',$_REQUEST['ip']);
+                    ->set('configFile',$_REQUEST['configFile']);
                 break;
             }
             if (!$this->obj->save()) throw new Exception(_('Printer update failed!'));
