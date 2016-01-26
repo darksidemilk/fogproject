@@ -204,7 +204,7 @@ class PrinterManagementPage extends FOGPage {
                     ->set('model',$_REQUEST['model'])
                     ->set('file',$_REQUEST['inf'])
                     ->set('port',$_REQUEST['port'])
-                    ->set('ip',$_REQUEST['ip']);
+                    ->set('ip',$_REQUEST['ip'])
                     ->set('configFile',$_REQUEST['configFile']);
                 if (!$Printer->save()) throw new Exception(_('Could not create printer'));
                 $this->HookManager->processEvent('PRINTER_ADD_SUCCESS',array('Printer'=>&$Printer));
@@ -334,7 +334,7 @@ class PrinterManagementPage extends FOGPage {
                     ->set('model',$_REQUEST['model'])
                     ->set('port',$_REQUEST['port'])
                     ->set('file',$_REQUEST['inf'])
-                    ->set('ip',$_REQUEST['ip']);
+                    ->set('ip',$_REQUEST['ip'])
                     ->set('configFile',$_REQUEST['configFile']);
                 break;
             }
