@@ -39,13 +39,13 @@ phpini="/etc/php/php.ini"
 initdpath="/usr/lib/systemd/system"
 initdsrc="../packages/systemd"
 if [[ -e /usr/lib/systemd/system/mariadb.service ]]; then
-    ln -s /usr/lib/systemd/system/mariadb.service /usr/lib/systemd/system/mysql.service >>/var/log/fog_error_${version}.log 2>&1
-    ln -s /usr/lib/systemd/system/mariadb.service /usr/lib/systemd/system/mysqld.service >>/var/log/fog_error_${version}.log 2>&1
-    ln -s /usr/lib/systemd/system/mariadb.service /etc/systemd/system/mysql.service >>/var/log/fog_error_${version}.log 2>&1
-    ln -s /usr/lib/systemd/system/mariadb.service /etc/systemd/system/mysqld.service >>/var/log/fog_error_${version}.log 2>&1
+    ln -s /usr/lib/systemd/system/mariadb.service /usr/lib/systemd/system/mysql.service >>$workingdir/error_logs/fog_error_${version}.log 2>&1
+    ln -s /usr/lib/systemd/system/mariadb.service /usr/lib/systemd/system/mysqld.service >>$workingdir/error_logs/fog_error_${version}.log 2>&1
+    ln -s /usr/lib/systemd/system/mariadb.service /etc/systemd/system/mysql.service >>$workingdir/error_logs/fog_error_${version}.log 2>&1
+    ln -s /usr/lib/systemd/system/mariadb.service /etc/systemd/system/mysqld.service >>$workingdir/error_logs/fog_error_${version}.log 2>&1
 elif [[ -e /usr/lib/systemd/system/mysqld.service ]]; then
-    ln -s /usr/lib/systemd/system/mysqld.service /usr/lib/systemd/system/mysql.service >>/var/log/fog_error_${version}.log 2>&1
-    ln -s /usr/lib/systemd/system/mysqld.service /etc/systemd/system/mysql.service >>/var/log/fog_error_${version}.log 2>&1
+    ln -s /usr/lib/systemd/system/mysqld.service /usr/lib/systemd/system/mysql.service >>$workingdir/error_logs/fog_error_${version}.log 2>&1
+    ln -s /usr/lib/systemd/system/mysqld.service /etc/systemd/system/mysql.service >>$workingdir/error_logs/fog_error_${version}.log 2>&1
 fi
 initdMCfullname="FOGMulticastManager.service"
 initdIRfullname="FOGImageReplicator.service"
@@ -60,5 +60,5 @@ tftpdirdst="/srv/tftp"
 tftpconfig="/etc/xinetd.d/tftpd"
 ftpxinetd="/etc/xinetd.d/vsftpd"
 ftpconfig="/etc/vsftpd.conf"
-dhcpd="dhcpd"
+dhcpd="dhcpd4"
 snapindir="/opt/fog/snapins"

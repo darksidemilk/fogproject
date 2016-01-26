@@ -1,8 +1,10 @@
 #!/bin/bash
 . /usr/share/fog/lib/funcs.sh
 . /bin/fog.donate
-clear
+clearScreen
 displayBanner
+disks=""
+disk=""
 hd=""
 sysman=""
 sysman64=""
@@ -50,29 +52,29 @@ caseman64=""
 casever64=""
 caseserial64=""
 casesasset64=""
-echo
 dots "Using disk device"
 getHardDisk
 echo "$hd"
 echo "Starting host registration"
-mac_deployed=$mac
+mac_deployed="$mac"
 mac=$(getMACAddresses | base64)
-echo
 dots "Attempting to register host"
 count=0
 res=""
 while [[ -z $res ]]; do
     res=$(wget --post-data="mac=$mac" -qO - http://${web}service/auto.register.php 2>/dev/null)
-    if [[ $count -ge 10 ]]; then
-        echo "Failed"
-        handleError "Cannot register host"
-    fi
-    let count+=1
-    usleep 5000000
+    case $count in
+        [0-8])
+            let count+=1
+            usleep 5000000
+            ;;
+        9)
+            echo "Failed"
+            handleError "Cannot register host"
+            ;;
+    esac
 done
 echo "$res"
 . /bin/fog.inventory
 count=0
-if [[ $deployed -eq 1 ]]; then
-    . /bin/fog.nonimgcomplete $mac_deployed
-fi
+[[ $deployed -eq 1 ]] && . /bin/fog.nonimgcomplete $mac_deployed

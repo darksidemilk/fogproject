@@ -2,7 +2,7 @@
 . /usr/share/fog/lib/funcs.sh
 . /bin/fog.donate
 for arg in $(cat /proc/cmdline); do
-    case "$arg" in
+    case $arg in
         initsh)
             ash -i
             ;;
@@ -11,9 +11,8 @@ for arg in $(cat /proc/cmdline); do
     esac
 done
 export capone=1
-clear
+clearScreen
 displayBanner
-echo
 echo " * Starting Capone"
 dots "Looking up DMI field"
 count=0
@@ -30,11 +29,9 @@ while [[ -z $dmi ]]; do
 done
 echo "Done"
 debugPause
-echo
 dots "Using Key Value:"
 dmivalue=$(dmidecode -s $dmi)
 echo "$dmivalue"
-echo
 usleep 1000000
 dmi64=$(echo $dmivalue | base64)
 dots "Looking for images"
@@ -56,22 +53,23 @@ oIFS=$IFS
 IFS=$'\n'
 cnt=0
 linedecode=""
-echo
+osname=""
+mbrfile=""
+defaultpart2start=""
 for line in $img; do
     linedecode=$(echo $line | base64 -d)
-    if [[ -z $linedecode ]]; then
-        handleError "No image definition was found for $dmivalue"
-    fi
+    [[ -z $linedecode ]] && handleError "No image definition was found for $dmivalue"
     let cnt+=1
-    determineOS $(echo $linedecode | awk -F"|" '{print $2}')
+    awk_returned_vars=$(echo $linedecode | awk -F"|" "{printf(\"%s\n%s\n%s\n%s\n%s\",\$1,\$2,\$3,\$4,\$5)}")
+    read img osid imgType imgPartitionType imgFormat <<< $awk_returned_vars
+    determineOS "$osid"
     echo -n " ID $cnt) "
     echo -n " OS: $osname"
     echo -n " Image: "
-    echo $(echo $linedecode | awk -F"|" '{print $1}')
+    echo $img
     echo -n " Partition: "
-    echo $(echo $linedecode | awk -F"|" '{print $4}')
+    echo $imgPartitionType
     echo -n " Format : "
-    imgFormat=$(echo $linedecode | awk -F"|" '{print $5}')
     case $imgFormat in
         1)
             echo "Partimage"
@@ -85,20 +83,13 @@ for line in $img; do
     esac
     usleep 1000000
 done
-echo
 case $cnt in
     0)
         handleError "No image definition was found for $dmivalue"
         ;;
     1)
-        img=$(echo $linedecode | awk -F"|" '{print $1}')
-        osid=$(echo $linedecode | awk -F"|" '{print $2}')
-        imgType=$(echo $linedecode | awk -F"|" '{print $3}')
-        imgPartitionType=$(echo $linedecode | awk -F"|" '{print $4}')
-        imgFormat=$(echo $linedecode | awk -F"|" '{print $5}')
-        determineOS $osid
         ;;
-    ^[0-9]*$)
+    *)
         imgchoice=""
         while [[ -z $imgchoice ]]; do
             echo -n " Multiple images found, please select an image #: "
@@ -108,20 +99,16 @@ case $cnt in
         for line in $img; do
             linedecode=$(echo $line | base64 -d)
             let cnt+=1
-            if [[ $cnt == $imgchoice ]]; then
-                img=$(echo $linedecode | awk -F"|" '{print $1}')
-                osid=$(echo $linedecode | awk -F"|" '{print $2}')
-                imgType=$(echo $linedecode | awk -F"|" '{print $3}')
-                imgPartitionType=$(echo $linedecode | awk -F"|" '{print $4}')
-                imgFormat=$(echo $linedecode | awk -F"|" '{print $5}')
-                determineOS $osid
+            if [[ $cnt -eq $imgchoice ]]; then
+                awk_returned_vars=$(echo $linedecode | awk -F'|' '{printf("%s\n%s\n%s\n%s\n%s",$1,$2,$3,$4,$5)}')
+                read img osid imgType imgPartitionType imgFormat <<< $awk_returned_vars
+                determineOS "$osid"
                 break
             fi
         done
         ;;
 esac
 IFS=$oIFS
-echo
 dots "Setting up environment to deploy image"
 export type="down"
 export mac="00:00:00:00:00:00"
@@ -131,5 +118,5 @@ export imgType
 export imgPartitionType
 export imgFormat
 usleep 2000000
-clear
+clearScreen
 fog

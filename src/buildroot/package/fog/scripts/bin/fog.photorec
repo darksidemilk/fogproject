@@ -3,12 +3,14 @@
 . /bin/fog.donate
 clearScreen
 displayBanner
+disks=""
+disk=""
+hd=""
+parts=""
+part=""
 getHardDisk "true"
-echo
 dots "Creating File System Mount point"
-if [[ ! -d /images ]]; then
-    mkdir /images
-fi
+[[ ! -d /images ]] && mkdir -p /images >/dev/null 2>&1
 if [[ ! -d /images ]]; then
     echo "Failed"
     debugPause
@@ -17,19 +19,23 @@ fi
 echo "Done"
 debugPause
 dots "Mounting File System"
-mount -o nolock ${storage} /images
-if [[ $? != 0 ]]; then
-    echo "Failed"
-    debugPause
-    handleError "Failed to Mount filesystem"
-fi
-echo "Done"
+mount -o nolock $storage /images
+case $? in
+    0)
+        echo "Done"
+        ;;
+    *)
+        echo "Failed"
+        debugPause
+        handleError "Failed to Mount filesystem"
+        ;;
+esac
 debugPause
-for disk in "$disks"; do
-    echo " * Starting PhotoRec on $disk";
+for disk in $disks; do
+    echo " * Starting PhotoRec on $disk"
     usleep 2000000
     getPartitions "$disk"
-    for part in "$parts"; do
+    for part in $parts; do
         echo "Performing photorec on $part"
         photorec $part
     done

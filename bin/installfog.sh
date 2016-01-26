@@ -16,6 +16,7 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+workingdir=$(pwd)
 case "$EUID" in
     0)
         ;;
@@ -43,30 +44,26 @@ else
         OSVersion=$(cat /etc/debian_version)
     fi
 fi
-[[ -d /opt/fog/log/ ]] && touch /opt/fog/log/fog_error_${version}.log;ln -s /opt/fog/log/fog_error_${version}.log /var/log/
-command -v lsb_release >/var/log/fog_error_${version}.log 2>&1
+[[ ! -d ./error_logs/ ]] && mkdir -p ./error_logs >/dev/null 2>&1
+command -v lsb_release >$workingdir/error_logs/fog_error_${version}.log 2>&1
 if [[ ! $? -eq 0 ]]; then
     case $linuxReleaseName in
         *[Dd][Ee][Bb][Ii][Aa][Nn]*|*[Bb][Uu][Nn][Tt][Uu]*)
-            apt-get -yq install lsb_release >>/var/log/fog_error_${version}.log 2>&1
+            apt-get -yq install lsb_release >>$workingdir/error_logs/fog_error_${version}.log 2>&1
             ;;
         *[Cc][Ee][Nn][Tt][Oo][Ss]*|*[Rr][Ee][Dd]*[Hh][Aa][Tt]*|*[Ff][Ee][Dd][Oo][Rr][Aa]*)
-            command -v dnf >>/var/log/fog_error_${version}.log 2>&1
+            command -v dnf >>$workingdir/error_logs/fog_error_${version}.log 2>&1
             if [[ $? -eq 0 ]]; then
-                dnf -y install redhat-lsb-core >>/var/log/fog_error_${version}.log 2>&1
+                dnf -y install redhat-lsb-core >>$workingdir/error_logs/fog_error_${version}.log 2>&1
             else
-                yum -y install redhat-lsb-core >>/var/log/fog_error_${version}.log 2>&1
+                yum -y install redhat-lsb-core >>$workingdir/error_logs/fog_error_${version}.log 2>&1
             fi
             ;;
     esac
 fi
-if [[ -z $OSVersion ]]; then
-    OSVersion=$(lsb_release -r| awk -F'[^0-9]*' /^[Rr]elease\([^.]*\).*/'{print $2}')
-fi
-command -v systemctl >>/var/log/fog_error_${version}.log 2>&1
-if [[ $? == 0 ]]; then
-    systemctl="yes"
-fi
+[[ -z $OSVersion ]] && OSVersion=$(lsb_release -r| awk -F'[^0-9]*' /^[Rr]elease\([^.]*\).*/'{print $2}')
+command -v systemctl >>$workingdir/error_logs/fog_error_${version}.log 2>&1
+[[ $? -eq 0 ]] && systemctl="yes"
 installtype=""
 ipaddress=""
 interface=""
@@ -93,34 +90,34 @@ ignorehtmldoc=0
 forcehttps="#"
 clearScreen
 if [[ -z $* ]]; then
-    echo > "/var/log/foginstall.log"
-    exec &> >(tee -a "/var/log/foginstall.log")
+    echo > "$workingdir/error_logs/foginstall.log"
+    exec &> >(tee -a "$workingdir/error_logs/foginstall.log")
 else
     if [[ $* != +(-h|-?|--help|--uninstall) ]]; then
-        echo > "/var/log/foginstall.log"
-        exec &> >(tee -a "/var/log/foginstall.log")
+        echo > "$workingdir/error_logs/foginstall.log"
+        exec &> >(tee -a "$workingdir/error_logs/foginstall.log")
     fi
 fi
 displayBanner
-display_center "Version: ${version} Installer/Updater"
+echo "   Version: ${version} Installer/Updater"
 echo
 fogpriorconfig="$fogprogramdir/.fogsettings"
 if [[ $doupdate -eq 1 ]]; then
     if [[ -f $fogpriorconfig ]]; then
         echo
-        display_center " * Found FOG Settings from previous install at: $fogprogramdir/.fogsettings"
-        echo -n " * Performing upgrade using these settings..."
+        echo " * Found FOG Settings from previous install at: $fogprogramdir/.fogsettings"
+        echo -n " * Performing upgrade using these settings"
         . "$fogpriorconfig"
         doOSSpecificIncludes
         . "$fogpriorconfig"
     fi
 else
     echo
-    display_center "FOG Installer will NOT attempt to upgrade from"
-    display_center "previous version of FOG."
+    echo " * FOG Installer will NOT attempt to upgrade from"
+    echo "   previous version of FOG."
     echo
 fi
-optspec="h?dEUHSCKYyXxf:-:W:D:B:s:e:b:"
+optspec="h?dEUHSCKYyXxTPf:-:W:D:B:s:e:b:"
 while getopts "$optspec" o; do
     case $o in
         -)
@@ -207,6 +204,12 @@ while getopts "$optspec" o; do
                     ;;
                 exitFail)
                     exitFail=1
+                    ;;
+                no-tftpbuild)
+                    noTftpBuild="true"
+                    ;;
+                no-pxedefault)
+                    notpxedefaultfile="true"
                     ;;
                 *)
                     if [[ $OPTERR == 1 && ${optspec:0:1} != : ]]; then
@@ -300,6 +303,12 @@ while getopts "$optspec" o; do
         X)
             exitFail=1
             ;;
+        T)
+            noTftpBuild="true"
+            ;;
+        P)
+            notpxedefaultfile="true"
+            ;;
         :)
             echo "Option -$OPTARG requires a value"
             help
@@ -314,128 +323,124 @@ while getopts "$optspec" o; do
             ;;
     esac
 done
-grep -l webroot /opt/fog/.fogsettings >>/var/log/fog_error_${version}.log 2>&1
-if [[ $? -eq 0 || ! -z $webroot ]]; then
-    webroot=${webroot#'/'}
-    webroot=${webroot%'/'}
-    webroot=${webroot}/
-elif [[ ! $? -eq 0 && -z $webroot ]]; then
-    webroot="fog/"
-fi
-if [[ -z $backupPath ]]; then
-    backupPath="/home/"
-fi
+grep -l webroot /opt/fog/.fogsettings >>$workingdir/error_logs/fog_error_${version}.log 2>&1
+case $? in
+    0)
+        if [[ -n $webroot ]]; then
+            webroot=${webroot#'/'}
+            webroot=${webroot%'/'}
+            webroot="${webroot}/"
+        fi
+        ;;
+    *)
+        [[ -z $webroot ]] && webroot="fog/"
+        ;;
+esac
+[[ -z $backupPath ]] && backupPath="/home/"
 backupPath="${backupPath%'/'}"
 backupPath="${backupPath#'/'}"
 backupPath="/$backupPath/"
-if [[ ! $doupdate -eq 1 || ! $fogupdateloaded -eq 1 ]]; then
-    . ../lib/common/input.sh
-fi
+[[ ! $doupdate -eq 1 || ! $fogupdateloaded -eq 1 ]] && . ../lib/common/input.sh
 echo
-display_center "######################################################################"
-display_center "#     FOG now has everything it needs for this setup, but please     #"
-display_center "#   understand that this script will overwrite any setting you may   #"
-display_center "#   have setup for services like DHCP, apache, pxe, tftp, and NFS.   #"
-display_center "######################################################################"
-display_center "# It is not recommended that you install this on a production system #"
-display_center "#        as this script modifies many of your system settings.       #"
-display_center "######################################################################"
-display_center "#             This script should be run by the root user.            #"
-display_center "#      It will prepend the running with sudo if root is not set      #"
-display_center "######################################################################"
-display_center "#           ** Notice ** FOG is difficult to setup securely          #"
-display_center "#        SELinux and IPTables are usually asked to be disabled       #"
-display_center "#           There have been strides in adding capabilities           #"
-display_center "#          The recommendations would now be more appropriate         #"
-display_center "#    to set SELinux to permissive and to disable firewall for now.   #"
-display_center "#  You can find some methods to enable SELinux and maintain firewall #"
-display_center "#   settings and ports. If you feel comfortable doing so please do   #"
-display_center "######################################################################"
-display_center "#            Please see our wiki for more information at:            #"
-display_center "######################################################################"
-display_center "#             https://wiki.fogproject.org/wiki/index.php             #"
-display_center "######################################################################"
+echo "   ######################################################################"
+echo "   #     FOG now has everything it needs for this setup, but please     #"
+echo "   #   understand that this script will overwrite any setting you may   #"
+echo "   #   have setup for services like DHCP, apache, pxe, tftp, and NFS.   #"
+echo "   ######################################################################"
+echo "   # It is not recommended that you install this on a production system #"
+echo "   #        as this script modifies many of your system settings.       #"
+echo "   ######################################################################"
+echo "   #             This script should be run by the root user.            #"
+echo "   #      It will prepend the running with sudo if root is not set      #"
+echo "   ######################################################################"
+echo "   #           ** Notice ** FOG is difficult to setup securely          #"
+echo "   #        SELinux and IPTables are usually asked to be disabled       #"
+echo "   #           There have been strides in adding capabilities           #"
+echo "   #          The recommendations would now be more appropriate         #"
+echo "   #    to set SELinux to permissive and to disable firewall for now.   #"
+echo "   #  You can find some methods to enable SELinux and maintain firewall #"
+echo "   #   settings and ports. If you feel comfortable doing so please do   #"
+echo "   ######################################################################"
+echo "   #            Please see our wiki for more information at:            #"
+echo "   ######################################################################"
+echo "   #             https://wiki.fogproject.org/wiki/index.php             #"
+echo "   ######################################################################"
 echo
-display_center "Here are the settings FOG will use:"
-display_center "Base Linux: $osname"
-display_center "Detected Linux Distribution: $linuxReleaseName"
-display_center "Server IP Address: $ipaddress"
-display_center "Interface: $interface"
+echo " * Here are the settings FOG will use:"
+echo " * Base Linux: $osname"
+echo " * Detected Linux Distribution: $linuxReleaseName"
+echo " * Server IP Address: $ipaddress"
+echo " * Interface: $interface"
 case $installtype in
     N)
-        display_center "Installation Type: Normal Server"
-        display_center "Donate: $donate"
-        display_center "Internationalization: $installlang"
-        display_center "Image Storage Location: $storageLocation"
+        echo " * Installation Type: Normal Server"
+        echo " * Donate: $donate"
+        echo " * Internationalization: $installlang"
+        echo " * Image Storage Location: $storageLocation"
         case $bldhcp in
             1)
-                display_center "Using FOG DHCP: Yes"
-                display_center "DHCP router Address: $plainrouter"
-                display_center "DHCP DNS Address: $dnsbootimage"
+                echo " * Using FOG DHCP: Yes"
+                echo " * DHCP router Address: $plainrouter"
+                echo " * DHCP DNS Address: $dnsbootimage"
                 ;;
             *)
-                display_center "Using FOG DHCP: No"
-                display_center "DHCP will NOT be setup but you must setup your"
-                display_center "current DHCP server to use FOG for PXE services."
+                echo " * Using FOG DHCP: No"
+                echo " * DHCP will NOT be setup but you must setup your"
+                echo " | current DHCP server to use FOG for PXE services."
                 echo
-                display_center "On a Linux DHCP server you must set: next-server"
+                echo " * On a Linux DHCP server you must set: next-server and filename"
                 echo
-                display_center "On a Windows DHCP server you must set options 066 and 067"
+                echo " * On a Windows DHCP server you must set options 066 and 067"
                 echo
-                display_center "Option 066 is the IP of the FOG Server: (e.g. $ipaddress)"
-                display_center "Option 067 is the undionly.kpxe file: (e.g. undionly.kpxe)"
+                echo " * Option 066/next-server is the IP of the FOG Server: (e.g. $ipaddress)"
+                echo " * Option 067/filename is the bootfile: (e.g. $bootfilename)"
                 ;;
         esac
         ;;
     S)
-        display_center "Installation Type: Storage Node"
-        display_center "Node IP Address: $ipaddress"
-        display_center "MySQL Database Host: $snmysqlhost"
-        display_center "MySQL Database User: $snmysqluser"
+        echo " * Installation Type: Storage Node"
+        echo " * Node IP Address: $ipaddress"
+        echo " * MySQL Database Host: $snmysqlhost"
+        echo " * MySQL Database User: $snmysqluser"
         ;;
 esac
 echo
 while [[ -z $blGo ]]; do
     echo
+    [[ -n $autoaccept ]] && blGo="y"
     if [[ -z $autoaccept ]]; then
         echo -n " * Are you sure you wish to continue (Y/N) "
         read blGo
-    else
-        blGo="y"
     fi
     echo
     case $blGo in
         [Yy]|[Yy][Ee][Ss])
-            display_center "Installation Started"
+            echo " * Installation Started"
             echo
-            display_center "Installing required packages, if this fails"
-            display_center "make sure you have an active internet connection."
+            echo " * Installing required packages, if this fails"
+            echo " | make sure you have an active internet connection."
             echo
             if [[ $ignorehtmldoc -eq 1 ]]; then
                 newpackagelist=""
                 for z in $packages; do
-                    if [[ $z != htmldoc ]]; then
-                        newpackagelist="$newpackagelist $z"
-                    fi
+                    [[ $z != htmldoc ]] && newpackagelist="$newpackagelist $z"
                 done
                 packages=$(trim $newpackagelist)
             fi
             if [[ $bldhcp == 0 ]]; then
                 newpackagelist=""
                 for z in $packages; do
-                    if [[ $z != $dhcpname ]]; then
-                        newpackagelist="$newpackagelist $z"
-                    fi
+                    [[ $z != $dhcpname ]] && newpackagelist="$newpackagelist $z"
                 done
                 packages=$(trim $newpackagelist)
             fi
             installPackages
             echo
-            display_center "Confirming package installation."
+            echo " * Confirming package installation"
             echo
             confirmPackageInstallation
             echo
-            display_center "Configuring services."
+            echo " * Configuring services"
             echo
             if [[ -z $storageLocation ]]; then
                 case $autoaccept in
@@ -446,22 +451,18 @@ while [[ -z $blGo ]]; do
                         echo
                         echo -n " * What is the storage location for your images directory? (/images) "
                         read storageLocation
-                        if [[ -z $storageLocation ]]; then
-                            storageLocation="/images"
-                        fi
+                        [[ -z $storageLoction ]] && storageLocation="/images"
                         while [[ ! -d $storageLocation && $storageLocation != "/images" ]]; do
                             echo -n " * Please enter a valid directory for your storage location (/images) "
                             read storageLocation
-                            if [[ -z $storageLocation ]]; then
-                                storageLocation="/images"
-                            fi
+                            [[ -z $storageLocation ]] && storageLocation="/images"
                         done
                         ;;
                 esac
             fi
             case $installtype in
                 [Ss])
-                    packages=$(echo "$packages"|sed 's/[[:space:]].*dhcp.*[[:space:]]/ /')
+                    packages=$(echo $packages | sed 's/[[:space:]].*dhcp.*[[:space:]]/ /')
                     configureUsers
                     configureMinHttpd
                     configureStorage
@@ -475,24 +476,23 @@ while [[ -z $blGo ]]; do
                     writeUpdateFile
                     if [[ $bluseralreadyexists == 1 ]]; then
                         echo
-                        display_center "Upgrade complete!"
+                        echo " * Upgrade complete"
                         echo
                     else
                         echo
-                        display_center "Setup complete!"
+                        echo " * Setup complete"
                         echo
                         echo
-                        display_center "You still need to setup this node in the fog management "
-                        display_center "portal.  You will need the username and password listed"
-                        display_center "below."
+                        echo " * You still need to setup this node in the fog management "
+                        echo " | portal. You will need the username and password listed"
+                        echo " | below."
                         echo
-                        display_center "Management Server URL:"
-                        display_center "http://${snmysqlhost}/fog"
+                        echo " * Management Server URL:"
+                        echo "   http://${snmysqlhost}/fog"
                         echo
-                        display_center "You will need this, write this down!"
-                        display_center "Username: $storageftpuser"
-                        display_center "Password: $storageftppass"
-                        echo
+                        echo "   You will need this, write this down!"
+                        echo "   Username: $storageftpuser"
+                        echo "   Password: $storageftppass"
                         echo
                     fi
                     ;;
@@ -503,24 +503,22 @@ while [[ -z $blGo ]]; do
                     configureHttpd
                     dots "Backing up database"
                     if [[ -d $backupPath/fog_web_${version}.BACKUP ]]; then
-                        if [[ ! -d $backupPath/fogDBbackups ]]; then
-                            mkdir -p $backupPath/fogDBbackups >>/var/log/fog_error_${version}.log 2>&1
-                        fi
-                        wget --no-check-certificate -O $backupPath/fogDBbackups/fog_sql_${version}_$(date +"%Y%m%d_%I%M%S").sql "http://$ipaddress/$webroot/management/export.php?type=sqldump" >>/var/log/fog_error_${version}.log 2>&1
+                        [[ ! -d $backupPath/fogDBbackups ]] && mkdir -p $backupPath/fogDBbackups >>$workingdir/error_logs/fog_error_${version}.log 2>&1
+                        wget --no-check-certificate -O $backupPath/fogDBbackups/fog_sql_${version}_$(date +"%Y%m%d_%I%M%S").sql "http://$ipaddress/$webroot/management/export.php?type=sqldump" >>$workingdir/error_logs/fog_error_${version}.log 2>&1
                     fi
                     errorStat $?
                     case $dbupdate in
                         [Yy]|[Yy][Ee][Ss])
                             dots "Updating Database"
-                            wget -qO - --post-data="confirm=1" --no-proxy http://127.0.0.1/${webroot}management/index.php?node=schemaupdater >>/var/log/fog_error_${version}.log 2>&1 || wget -qO - --post-data="confirm=1" --no-proxy http://${ipaddress}/${webroot}management/index.php?node=schemaupdater >>/var/log/fog_error_${version}.log 2>&1
+                            wget -qO - --post-data="confirm=1" --no-proxy http://127.0.0.1/${webroot}management/index.php?node=schemaupdater >>$workingdir/error_logs/fog_error_${version}.log 2>&1 || wget -qO - --post-data="confirm=1" --no-proxy http://${ipaddress}/${webroot}management/index.php?node=schemaupdater >>$workingdir/error_logs/fog_error_${version}.log 2>&1
                             errorStat $?
                             ;;
                         *)
                             echo
-                            display_center "You still need to install/update your database schema."
-                            display_center "This can be done by opening a web browser and going to:"
+                            echo " * You still need to install/update your database schema."
+                            echo " * This can be done by opening a web browser and going to:"
                             echo
-                            display_center "http://${ipaddress}/fog/management"
+                            echo "   http://${ipaddress}/fog/management"
                             echo
                             read -p " * Press [Enter] key when database is updated/installed."
                             echo
@@ -539,31 +537,32 @@ while [[ -z $blGo ]]; do
                     writeUpdateFile
                     linkOptFogDir
                     echo
-                    display_center "Setup complete!"
+                    echo " * Setup complete"
                     echo
-                    display_center "You can now login to the FOG Management Portal using"
-                    display_center "the information listed below.  The login information"
-                    display_center "is only if this is the first install."
+                    echo "   You can now login to the FOG Management Portal using"
+                    echo "   the information listed below.  The login information"
+                    echo "   is only if this is the first install."
                     echo
-                    display_center "This can be done by opening a web browser and going to:"
+                    echo "   This can be done by opening a web browser and going to:"
                     echo
-                    display_center "http://${ipaddress}/${webroot}management"
+                    echo "   http://${ipaddress}/${webroot}management"
                     echo
-                    display_center "Default User Information"
-                    display_center "Username: fog"
-                    display_center "Password: password"
+                    echo "   Default User Information"
+                    echo "   Username: fog"
+                    echo "   Password: password"
                     echo
                     ;;
             esac
             ;;
         [Nn]|[Nn][Oo])
-            echo "FOG installer exited by user request"
-            exit 1
+            echo " * FOG installer exited by user request"
+            exit 0
             ;;
         *)
             echo
-            echo "Sorry, answer not recognized"
+            echo " * Sorry, answer not recognized"
             echo
+            exit 1
             ;;
     esac
 done

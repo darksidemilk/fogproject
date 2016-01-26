@@ -1,5 +1,4 @@
-var Container = $('#active-tasks'),
-    CANCELURL,
+var CANCELURL,
     URL,
     pauseButton,
     pauseUpdate,
@@ -7,9 +6,9 @@ var Container = $('#active-tasks'),
     cancelTasks;
 $(function() {
     var Options = {
-        URL: window.location.href,
-        Container: '#active-tasks',
-        CancelURL: (typeof(sub) == 'undefined' || sub == 'active' ? '?node='+node+'&sub=canceltasks' : (sub.indexOf('active') != -1 ? '?node='+node+'&sub='+sub+'-post' : '')),
+        URL: location.href,
+        Container: '#search-content,#active-tasks',
+        CancelURL: (sub.indexOf('action') != -1 ? location.href : ''),
     };
     Container = $(Options.Container);
     if (!Container.length) alert('No Container element found: '+Options.Container);
@@ -62,7 +61,6 @@ function ActiveTasksUpdate() {
     clearInterval(AJAXTaskUpdate);
     if (AJAXTaskRunning) AJAXTaskRunning.abort();
     AJAXTaskRunning = $.ajax({
-        type: 'POST',
         url: URL,
         dataType: 'json',
         beforeSend: function() {

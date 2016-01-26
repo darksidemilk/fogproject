@@ -5,18 +5,19 @@
 . /bin/fog.checkmount
 . /bin/fog.checkimgvar
 imagePath="/images/$macWinSafe"
-echo
+parts=""
+part=""
+disks=""
+disk=""
+hd=""
 echo " * Preparing to send image file to server"
-echo
 percent="$pct"
 [[ $pct -lt 5 || $pct -ge 100 ]] && percent=5
 [[ $pct -lt 10 ]] && percent="0$pct"
 fog.statusreporter "$mac" "$web" & disown
 statusReporter="$!"
-prepareUploadLocation
-echo
+prepareUploadLocation "$imagePath"
 echo " * Using Image: $img"
-echo
 case $imgType in
     [Nn]|mps|dd)
         dots "Looking for Hard Disk"
@@ -38,14 +39,7 @@ case $imgType in
         fi
         echo "Done"
         debugPause
-        echo
         echo " * Using Hard Disk: $hd"
-        echo
-        debugPause
-        echo
-        echo " * Partitions found: $parts"
-        echo
-        debugPause
         ;;
     mpa)
         dots "Looking for Hard Disks"
@@ -57,34 +51,22 @@ case $imgType in
         fi
         echo "Done"
         debugPause
-        echo
-        echo " * Using Disks: $disks"
-        echo
-        debugPause
         for disk in $disks; do
             dots "Reading Partition Tables on $disk"
             getPartitions "$disk"
             if [[ -z $parts ]]; then
                 echo "Failed"
                 debugPause
-                echo
                 echo " * No partitions for disk $disk"
-                echo
                 debugPause
                 continue
             fi
             echo "Done"
-            debugPause
-            echo
-            echo " * Partitions on disk $disk: $parts"
-            echo
-            debugPause
         done
         ;;
 esac
-echo
+debugPause
 echo " * Now FOG will attempt to upload the image using Partclone"
-echo
 debugPause
 # resizable image type
 #  discover windows partitions
@@ -101,71 +83,67 @@ debugPause
 case $imgType in
     [Nn])
         validResizeOS
-        win7partcnt=$(echo $parts | wc -l)
+        win7partcnt=$(echo $parts | wc -w)
         dots "Checking for fixed partitions"
+        runPartprobe "$hd"
+        getPartitions "$hd"
+        part_number=""
         for part in $parts; do
-            fstype=$(fsTypeSetting $part)
+            fsTypeSetting "$part"
+            getPartitionNumber "$part"
             case $fstype in
                 ntfs|extfs)
-                    fixed_size_partitions="$fixed_size_partitions:$part:"
+                    continue
+                    ;;
+                *)
+                    fixed_size_partitions="$fixed_size_partitions:$part_number:"
                     ;;
             esac
         done
         echo "Done"
         debugPause
         dots "Getting Windows/Linux Partition Count"
-        ntfscnt=$(countNtfs $hd)
-        extfsavail=$(countExtfs $hd)
-        if [[ $ntfscnt -eq 0 && $extfsavail -eq 0 ]] || [[ -z $ntfscnt && -z $extfsavail ]]; then
+        countPartTypes "$hd" "ntfs" "ntfscnt"
+        countPartTypes "$hd" "extfs" "extfscnt"
+        if [[ $ntfscnt -eq 0 && $extfscnt -eq 0 ]]; then
             echo "Failed"
             debugPause
             handleError "No resizable partitions found ($0)"
         fi
         echo "Done"
         debugPause
-        [[ -z $ntfscnt ]] && ntfscnt=0
-        [[ -z $extfsavail ]] && extfsavail=0
-        echo
         echo " * NTFS Partition count of: $ntfscnt"
-        echo
         debugPause
-        echo
-        echo " * EXTFS Partition count of: $extfsavail"
-        echo
+        echo " * EXTFS Partition count of: $extfscnt"
         debugPause
-        for partclr in $parts; do
-            clearMountedDevices "$partclr"
-        done
-        fixedcount=0
         case $osid in
             [5-7]|9|50)
                 echo " * Setting up any additional fixed parts"
+                part_number=0
                 for part in $parts; do
-                    if [[ $fixedcount -eq 0 && $win7partcnt -eq 2 ]]; then
-                        fixed_size_partitions="$fixed_size_partitions:$part:"
-                    elif [[ $fixedcount == +([1-3]) ]] && [[ $win7partcnt -eq 3 ]]; then
-                        fixed_size_partitions="$fixed_size_partitions:$part:"
-                        [[ $fixedcount -eq 3 ]] && break
-                    fi
+                    getPartitionNumber "$part"
+                    case $win7partcnt in
+                        2)
+                            [[ $part_number -eq 1 ]] && fixed_size_partitions="$fixed_size_partitions:$part:"
+                            ;;
+                        3)
+                            [[ $part_number == +(1|2) ]] && fixed_size_partitions="$fixed_size_partitions:$part:"
+                            ;;
+                        *)
+                            continue
+                            ;;
+                    esac
                 done
-                let fixedcount+=1
                 ;;
         esac
-        fixed_size_partitions="${fixed_size_partitions#"${fixed_size_partitions%%[![:]]*}"}"
-        fixed_size_partitions="${fixed_size_partitions%"${fixed_size_partitions##*[![:]]}"}"
         # All:
         #  save the list of fixed size partitions
         fixed_size_partitions=$(echo $fixed_size_partitions | sed -r 's/[^:0-9]//g' | sed -r 's/^://')
         echo "$fixed_size_partitions" > "$imagePath/d1.fixed_size_partitions"
-        if [[ $osid == +([1-2]|[5-7]|9|50) ]]; then
-            for partpage in $parts; do
-                removePageFile "$partpage"
-            done
-        fi
         dots "Getting sector start"
         case $osid in
             [1-2])
-                partitionStart=$(fdisk -lu | grep $part | awk '{print $3}')
+                partitionStart=$(fdisk -lu | awk "/$(escapeItem $part)/{print \$3}")
                 [[ -z $partitionStart ]] && partitionStart=63
                 ;;
         esac
@@ -176,51 +154,54 @@ case $imgType in
         #  Start filesytem type record
         dots "Saving original partition table"
         saveOriginalPartitions "$hd" "$imagePath" 1
+        swapuuidfilename=""
+        swapUUIDFileName "$imagePath" 1
         echo -n "" > "$imagePath/d1.original.fstypes"
-        echo -n "" > $(swapUUIDFileName $imagePath 1)
+        echo -n "" > $swapuuidfilename
         echo "Done"
         debugPause
         savePartitionTablesAndBootLoaders "$hd" 1 "$imagePath" "$osid" "$imgPartitionType"
+        echo " * Processing Hard Disk: $hd"
+        getPartitions "$hd"
         for part in $parts; do
-            shrinkPartition "$part" "$imagePath/d1.original.fstypes"
-        done
-        runPartprobe "$hd"
-        debugPause
-        [[ ! $osid -eq 50 ]] && resetFlag "$part"
-        echo " * Processing Hard Disk: $disk"
-        for part in $parts; do
+            clearMountedDevices "$part"
+            removePageFile "$part"
+            shrinkPartition "$part" "$imagePath/d1.original.fstypes" "$fixed_size_partitions"
+            runPartprobe "$hd"
             savePartition "$part" 1 "$imagePath" "$imgPartitionType"
-            debugPause
         done
         dots "Restoring MBR"
         restoreOriginalPartitions "$hd" "$imagePath" 1
+        runPartprobe "$hd"
         echo "Done"
         debugPause
         [[ $osid -eq 2 ]] && correctVistaMBR "$hd"
+        getPartitions "$hd"
         for part in $parts; do
-            expandPartition "$part"
+            expandPartition "$part" "$fixed_size_partitions"
         done
         ;;
     mps)
         echo " * Processing Hard Disk: $hd"
         savePartitionTablesAndBootLoaders "$hd" 1 "$imagePath" "$osid" "$imgPartitionType"
+        getPartitions "$hd"
         for part in $parts; do
             savePartition "$part" 1 "$imagePath" "$imgPartitionType"
-            debugPause
         done
         ;;
     mpa)
-        intDisk=1
+        disk_number=1
         for disk in $disks; do
-            savePartitionTablesAndBootLoaders "$disk" "$intDisk" "$imagePath" "$osid" "$imgPartitionType"
+            debugPause
             echo " * Processing Hard Disk: $disk"
+            savePartitionTablesAndBootLoaders "$disk" "$disk_number" "$imagePath" "$osid" "$imgPartitionType"
+            runPartprobe "$disk"
+            getPartitions "$disk"
             for part in $parts; do
-                savePartition "$part" "$intDisk" "$imagePath" "$imgPartitionType"
-                debugPause
+                savePartition "$part" "$disk_number" "$imagePath" "$imgPartitionType"
             done
             echo " * Disk $disk complete"
-            let intDisk+=1
-            debugPause
+            let disk_number+=1
         done
         ;;
     dd)
@@ -229,7 +210,7 @@ case $imgType in
         uploadFormat "/tmp/pigz1" "$imgpart"
         partclone.imager -c -s "$hd" -O /tmp/pigz1 -N -f 1 2>/tmp/status.fog
         rm /tmp/pigz1 >/dev/null 2>&1
-        clear
+        clearScreen
         ;;
 esac
 chmod -R 777 "$imagePath" >/dev/null 2>&1

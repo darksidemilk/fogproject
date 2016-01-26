@@ -91,13 +91,15 @@ class FOGConfigurationPage extends FOGPage {
             }
         } else if ($_REQUEST['install']) {
             $_SESSION['allow_ajax_kdl'] = true;
-            $_SESSION['dest-kernel-file'] = trim($_REQUEST['dstName']);
+            $_SESSION['dest-kernel-file'] = trim(basename($_REQUEST['dstName']));
             $_SESSION['tmp-kernel-file'] = sprintf('%s%s%s%s',DIRECTORY_SEPARATOR,trim(sys_get_temp_dir(),DIRECTORY_SEPARATOR),DIRECTORY_SEPARATOR,basename($_SESSION['dest-kernel-file']));
             $_SESSION['dl-kernel-file'] = base64_decode($_REQUEST['file']);
             if (file_exists($_SESSION['tmp-kernel-file'])) @unlink($_SESSION['tmp-kernel-file']);
             printf('<div id="kdlRes"><p id="currentdlstate">%s</p><i id="img" class="fa fa-cog fa-2x fa-spin"></i></div>',_('Starting process...'));
         } else {
-            printf('<form method="post" action="?node=%s&sub=kernel&install=1&file=%s"><p>%s: <input class="smaller" type="text" name="dstName" value="%s"/></p><p><input class="smaller" type="submit" value="%s"/></p></form>',$this->node,basename(mb_convert_encoding($_REQUEST['file'],'UTF-8','UTF-8')),_('Kernel Name'),(mb_convert_encoding($_REQUEST['arch'],'UTF-8','UTF-8') == 64 || !mb_convert_encoding($_REQUEST['arch'],'UTF-8','UTF-8') ? 'bzImage' : 'bzImage32'),_('Next'));
+            $tmpFile = basename(htmlentities($_REQUEST['file'],ENT_QUOTES,'utf-8'));
+            $tmpArch = htmlentities($_REQUEST['file'],ENT_QUOTES,'utf-8');
+            printf('<form method="post" action="?node=%s&sub=kernel&install=1&file=%s"><p>%s: <input class="smaller" type="text" name="dstName" value="%s"/></p><p><input class="smaller" type="submit" value="%s"/></p></form>',$this->node,basename(htmlentities($_REQUEST['file'],ENT_QUOTES,'utf-8')),_('Kernel Name'),($tmpArch == 64 || ! $tmpArch ? 'bzImage' : 'bzImage32'),_('Next'));
         }
     }
     public function pxemenu() {
@@ -148,11 +150,11 @@ class FOGConfigurationPage extends FOGPage {
     public function pxemenu_post() {
         try {
             $timeout = trim($_REQUEST['timeout']);
-            $timeout = (is_numeric($timeout) || intval($timeout) >= 0 ? true : false);
+            $timeout = (is_numeric($timeout) || (int) $timeout >= 0 ? true : false);
             if (!$timeout) throw new Exception(_('Invalid Timeout Value'));
             else $timeout = trim($_REQUEST['timeout']);
             $hidetimeout = trim($_REQUEST['hidetimeout']);
-            $hidetimeout = (is_numeric($hidetimeout) || intval($hidetimeout) >= 0 ? true : false);
+            $hidetimeout = (is_numeric($hidetimeout) || (int) $hidetimeout >= 0 ? true : false);
             if (!$hidetimeout) throw new Exception(_('Invalid Timeout Value'));
             else $hidetimeout = trim($_REQUEST['hidetimeout']);
             if (!$this
@@ -575,7 +577,7 @@ class FOGConfigurationPage extends FOGPage {
         echo '</div></form>';
     }
     public function getOSID() {
-        $imageid = is_numeric($_REQUEST['image_id']) ? $_REQUEST['image_id'] : 0;
+        $imageid = (int) $_REQUEST['image_id'];
         $osname = $this->getClass('Image',$imageid)->getOS()->get('name');
         echo json_encode($osname ? $osname : _('No Image specified'));
         exit;
@@ -735,7 +737,9 @@ class FOGConfigurationPage extends FOGPage {
         try {
             if (!$_FILES['dbFile']) throw new Exception(_('No files uploaded'));
             $original = $Schema->export_db();
-            $result = $this->getClass('Schema')->import_db(mb_convert_encoding($_FILES['dbFile']['tmp_name'],'UTF-8','UTF-8'));
+            $tmp_name = htmlentities($_FILES['dbFile']['tmp_name'],ENT_QUOTES,'utf-8');
+            $filename = sprintf('%s%s%s',dirname($tmp_name),DIRECTORY_SEPARATOR,basename($tmp_name));
+            $result = $this->getClass('Schema')->import_db($filename);
             if ($result === true) printf('<h2>%s</h2>',_('Database Imported and added successfully'));
             else {
                 printf('<h2>%s</h2>',_('Errors detected on import'));

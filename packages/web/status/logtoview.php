@@ -1,16 +1,16 @@
 <?php
 $vals = function($reverse,$HookManager) {
     ini_set("auto_detect_line_endings", true);
-    $folder = sprintf('/%s/',trim(trim(dirname($_REQUEST['file']),'/')));
+    $folder = sprintf('/%s/',trim(trim(dirname(htmlentities($_REQUEST['file'],ENT_QUOTES,'utf-8')),'/')));
     $pattern = sprintf('#^%s$#',$folder);
     $folders = array('/var/log/fog/','/opt/fog/log/','/var/log/httpd/','/var/log/apache2/');
     $HookManager->processEvent('LOG_FOLDERS',array('folders'=>&$folders));
     if (!preg_grep($pattern,$folders)) return _('Invalid Folder');
     $lines = array();
-    $line_count = is_numeric(trim($_REQUEST['lines'])) ? trim($_REQUEST['lines']) : 20;
+    $line_count = (int) $_REQUEST['lines'];
     $block_size = 8192;
     $leftover = "";
-    $file = trim(basename($_REQUEST['file']));
+    $file = trim(basename(htmlentities($_REQUEST['file'],ENT_QUOTES,'utf-8')));
     $path = sprintf('%s%s',$folder,$file);
     $fh = fopen($path,'rb');
     if ($fh === false) return _('No data to read');
@@ -20,7 +20,8 @@ $vals = function($reverse,$HookManager) {
         if (ftell($fh) < $block_size) $can_read = ftell($fh);
         fseek($fh, -$can_read, SEEK_CUR);
         ob_start();
-        echo mb_convert_encoding(fread($fh,$can_read),'UTF-8');
+        $line = htmlentities(fread($fh,$can_read),ENT_QUOTES,'utf-8');
+        echo $line;
         echo $leftover;
         fseek($fh, -$can_read, SEEK_CUR);
         $split_data = array_reverse(explode("\n",ob_get_clean()));
@@ -33,22 +34,22 @@ $vals = function($reverse,$HookManager) {
     return implode("\n",($reverse ? array_slice($lines,0,$line_count) : array_reverse(array_slice($lines,0,$line_count))));
 };
 require('../commons/base.inc.php');
-$url = trim($FOGCore->aesdecrypt(mb_convert_encoding($_REQUEST['ip'],'UTF-8')));
+$url = trim($FOGCore->aesdecrypt(htmlentities($_REQUEST['ip'],ENT_QUOTES,'utf-8')));
 $ip = $FOGCore->resolveHostname($url);
 if (filter_var($ip,FILTER_VALIDATE_IP) === false) {
     echo json_encode(_('IP Passed is incorrect'));
 } else {
     if ($url != $ip) $ip = $url;
     $pat = sprintf('#%s#',$ip);
-    if (preg_match($pat,$_SERVER['HTTP_HOST'])) echo json_encode($vals(intval($_REQUEST['reverse']),$HookManager));
+    if (preg_match($pat,$_SERVER['HTTP_HOST'])) echo json_encode($vals((int) $_REQUEST['reverse'],$HookManager));
     else {
         $url = sprintf('http://%s/fog/status/logtoview.php',$ip);
         $url = filter_var($url,FILTER_SANITIZE_URL);
         $response = $FOGURLRequests->process($url,'POST',array(
-            'ip'=>mb_convert_encoding($FOGCore->aesencrypt($ip),'UTF-8'),
-            'file'=>mb_convert_encoding($_REQUEST['file'],'UTF-8'),
-            'lines'=>mb_convert_encoding($_REQUEST['lines'],'UTF-8'),
-            'reverse'=>intval($_REQUEST['reverse']))
+            'ip'=>htmlentities($FOGCore->aesencrypt($ip),ENT_QUOTES,'utf-8'),
+            'file'=>htmlentities($_REQUEST['file'],ENT_QUOTES,'utf-8'),
+            'lines'=>htmlentities($_REQUEST['lines'],ENT_QUOTES,'utf-8'),
+            'reverse'=>(int) $_REQUEST['reverse'])
         );
         echo array_shift($response);
     }

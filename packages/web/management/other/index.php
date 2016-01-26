@@ -21,7 +21,7 @@ unset($stylesheet); ?>
 <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon"/>
 </head>
 <body>
-<?php if (!$this->isMobile) { ?><div class="fog-variable" id="FOGPingActive"><?php echo intval($_SESSION['FOGPingActive']) ?></div><?php
+<?php if (!$this->isMobile) { ?><div class="fog-variable" id="FOGPingActive"><?php echo (int) $_SESSION['FOGPingActive'] ?></div><?php
 } ?>
 <!-- Session Messages -->
 <?php !$this->isMobile ? $this->getMessages() : '' ?>
@@ -43,7 +43,7 @@ unset($stylesheet); ?>
 					<!-- Header --><header>
 					<div id="header"<?php echo (!$this->FOGUser ? ' class="login"' : '') ?>>
 					<div id="logo">
-					<h1><a href="<?php echo mb_convert_encoding($_SERVER['PHP_SELF'],'UTF-8') ?>"><img src="<?php echo $this->imagelink ?>fog-logo.png" title="<?php echo $this->foglang['Home'] ?>" /><sup><?php echo FOG_VERSION ?></sup></a></h1>
+					<h1><a href="<?php echo $this->urlself ?>"><img src="<?php echo $this->imagelink ?>fog-logo.png" title="<?php echo $this->foglang['Home'] ?>" /><sup><?php echo FOG_VERSION ?></sup></a></h1>
 					<h2><?php echo $this->foglang['Slogan'] ?></h2>
 					</div>
 					<?php if ($this->FOGUser) { ?><!-- Mainmenu -->

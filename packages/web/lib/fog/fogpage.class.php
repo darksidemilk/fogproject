@@ -33,7 +33,7 @@ abstract class FOGPage extends FOGBase {
             $this->childClass = ucfirst($this->node);
             if (isset($_REQUEST['id'])) {
                 $this->obj = $this->getClass($this->childClass,$_REQUEST['id']);
-                if (intval($_REQUEST['id']) === 0 || !is_numeric($_REQUEST['id']) || !$this->obj->isValid()) {
+                if ((int) $_REQUEST['id'] === 0 || !is_numeric($_REQUEST['id']) || !$this->obj->isValid()) {
                     unset($this->obj);
                     $this->setMessage(sprintf(_('%s ID %s is not valid'),$this->childClass,$_REQUEST['id']));
                     $this->redirect(sprintf('?node=%s',$this->node));
@@ -54,7 +54,7 @@ abstract class FOGPage extends FOGBase {
             'export'=>sprintf($this->foglang[sprintf('Export%s',$this->childClass)]),
             'import'=>sprintf($this->foglang[sprintf('Import%s',$this->childClass)]),
         );
-        $this->formAction = preg_replace('#(&tab.*)$#','',filter_var(html_entity_decode(sprintf('%s?%s',mb_convert_encoding($_SERVER['PHP_SELF'],'UTF-8'),mb_convert_encoding($_SERVER['QUERY_STRING'],'UTF-8'))),FILTER_SANITIZE_URL));
+        $this->formAction = preg_replace('#(&tab.*)$#','',filter_var(html_entity_decode(sprintf('%s?%s',$this->urlself,htmlentities($_SERVER['QUERY_STRING'],ENT_QUOTES,'utf-8'))),FILTER_SANITIZE_URL));
         $this->HookManager->processEvent('SEARCH_PAGES',array('searchPages'=>&$this->searchPages));
         $this->HookManager->processEvent('SUB_MENULINK_DATA',array('menu'=>&$this->menu,'submenu'=>&$this->subMenu,'id'=>&$this->id,'notes'=>&$this->notes));
     }
@@ -114,6 +114,8 @@ abstract class FOGPage extends FOGBase {
                 $contentField,
                 $this->buildHeaderRow()
             );
+            $node = htmlentities($_REQUEST['node'],ENT_QUOTES,'utf-8');
+            $sub = htmlentities($_REQUEST['sub'],ENT_QUOTES,'utf-8');
             if (!count($this->data)) {
                 $contentField = 'no-active-tasks';
                 printf('<tr><td colspan="%s" class="%s">%s</td></tr></tbody></table>',
@@ -122,21 +124,20 @@ abstract class FOGPage extends FOGBase {
                     ($this->data['error'] ? (is_array($this->data['error']) ? sprintf('<p>%s</p>',implode('</p><p>',$this->data['error'])) : $this->data['error']) : ($this->node != 'task' ? (!$this->isMobile ? $this->foglang['NoResults'] : '') : $this->foglang['NoResults']))
                 );
             } else {
-                if ((!$_REQUEST['sub'] && $defaultScreen == 'list') || (in_array($_REQUEST['sub'],$defaultScreens) && in_array($_REQUEST['node'],$this->searchPages)))
+                if ((!$sub && $defaultScreen == 'list') || (in_array($sub,$defaultScreens) && in_array($node,$this->searchPages)))
                     if ($this->node != 'home') $this->setMessage(sprintf('%s %s%s found',count($this->data),$this->childClass,(count($this->data) != 1 ? 's' : '')));
-                $id_field = "{$_REQUEST['node']}_id";
+                $id_field = "{$node}_id";
                 foreach ((array)$this->data AS $i => &$rowData) {
-                    printf('<tr id="%s-%s"%s>%s</tr>',
+                    printf('<tr id="%s-%s">%s</tr>',
                         strtolower($this->childClass),
                         $rowData['id'] ? $rowData['id'] : $rowData[$id_field],
-                        ((++$i % 2) ? ' class="alt1"' : ((!$_REQUEST['sub'] && $defaultScreen == 'list') || (in_array($_REQUEST['sub'],$defaultScreens) && in_array($_REQUEST['node'],$this->searchPages)) ? ' class="alt2"' : '')),
                         $this->buildRow($rowData)
                     );
                 }
                 unset($rowData);
             }
             echo '</tbody></table>';
-            if (((!$_REQUEST['sub'] || ($_REQUEST['sub'] && in_array($_REQUEST['sub'],$defaultScreens))) && in_array($_REQUEST['node'],$this->searchPages)) && !$this->isMobile) {
+            if (((!$sub || ($sub && in_array($sub,$defaultScreens))) && in_array($node,$this->searchPages)) && !$this->isMobile) {
                 if ($this->node == 'host') {
                     printf('<form method="post" action="%s", id="action-box"><input type="hidden" name="hostIDArray" value="" autocomplete="off"/><p><label for="group_new">%s</label><input type="text" name="group_new" id="group_new" autocomplete="off"/></p><p class="c">OR</p><p><label for="group">%s</label>%s</p><p class="c"><input type="submit" value="%s"/></p></form>',
                         sprintf('?node=%s&sub=save_group',$this->node),
@@ -193,12 +194,20 @@ abstract class FOGPage extends FOGBase {
     private function replaceNeeds($data) {
         unset($this->dataFind,$this->dataReplace);
         $urlvars = array('node'=>$GLOBALS['node'],'sub'=>$GLOBALS['sub'],'tab'=>$GLOBALS['tab']);
+        preg_match_all('#\$\{(.+?)\}#',implode($this->templates),$foundchanges);
         $arrayReplace = array_merge($urlvars,(array)$data);
+        $foundchanges = $foundchanges[1];
+        foreach ($foundchanges AS &$name) {
+            $this->dataFind[] = sprintf('#\$\{%s\}#',$name);
+            $this->dataReplace[] = in_array($name,array_keys($arrayReplace)) ? $arrayReplace[$name] : '';
+            unset($name);
+        }
+        unset($foundchanges);
         foreach ($arrayReplace AS $name => &$val) {
             $this->dataFind[] = sprintf('#\$\{%s\}#',$name);
             $this->dataReplace[] = $val;
+            unset($val);
         }
-        unset($val);
     }
     public function buildRow($data) {
         unset($this->atts);
@@ -219,13 +228,13 @@ abstract class FOGPage extends FOGBase {
     }
     public function deploy() {
         try {
-            $TaskType = $this->getClass('TaskType',(is_numeric($_REQUEST['type']) && intval($_REQUEST['type']) ? intval($_REQUEST['type']) : 1));
+            $TaskType = $this->getClass('TaskType',(is_numeric($_REQUEST['type']) && (int) $_REQUEST['type'] ? (int) $_REQUEST['type'] : 1));
             $imagingTypes = in_array($TaskType->get('id'),array(1,2,8,15,16,17,24));
             if (($this->obj instanceof Group && !(count($this->obj->get('hosts')))) || ($this->obj instanceof Host && ($this->obj->get('pending') || !$this->obj->isValid())) || (!($this->obj instanceof Host || $this->obj instanceof Group))) throw new Exception(_('Cannot set taskings to pending or invalid items'));
             if ($imagingTypes && $this->obj instanceof Host && !$this->obj->getImage()->get('isEnabled')) throw new Exception(_('Cannot set tasking as image is not enabled'));
         } catch (Exception $e) {
             $this->setMessage($e->getMessage());
-            $this->redirect(sprintf('?node=%s&sub=edit%s',$this->node,(is_numeric($_REQUEST['id']) && intval($_REQUEST['id']) > 0 ? sprintf('%s=%s',$this->id,intval($_REQUEST['id'])) : '')));
+            $this->redirect(sprintf('?node=%s&sub=edit%s',$this->node,(is_numeric($_REQUEST['id']) && (int) $_REQUEST['id'] > 0 ? sprintf('&%s=%s',$this->id,(int) $_REQUEST['id']) : '')));
         }
         $this->title = sprintf('%s %s %s %s',_('Create'),$TaskType->get('name'),_('task for'),$this->obj->get('name'));
         printf('<p class="c"><b>%s</b></p>',_('Are you sure you wish to deploy task to these machines'));
@@ -311,21 +320,21 @@ abstract class FOGPage extends FOGBase {
     }
     public function deploy_post() {
         try {
-            $TaskType = $this->getClass('TaskType',(is_numeric($_REQUEST['type']) && intval($_REQUEST['type']) ? intval($_REQUEST['type']) : 1));
+            $TaskType = $this->getClass('TaskType',((int) $_REQUEST['type'] ? (int) $_REQUEST['type'] : 1));
             $imagingTypes = in_array($TaskType->get('id'),array(1,2,8,15,16,17,24));
             if (($this->obj instanceof Group && !(count($this->obj->get('hosts')))) || ($this->obj instanceof Host && ($this->obj->get('pending') || !$this->obj->isValid())) || (!($this->obj instanceof Host || $this->obj instanceof Group))) throw new Exception(_('Cannot set taskings to pending or invalid items'));
             if ($imagingTypes && $this->obj instanceof Host && !$this->obj->getImage()->get('isEnabled')) throw new Exception(_('Cannot set tasking as image is not enabled'));
         } catch (Exception $e) {
             $this->setMessage($e->getMessage());
-            $this->redirect(sprintf('?node=%s&sub=edit%s',$this->node,(is_numeric($_REQUEST['id']) && intval($_REQUEST['id']) > 0 ? sprintf('%s=%s',$this->id,intval($_REQUEST['id'])) : '')));
+            $this->redirect(sprintf('?node=%s&sub=edit%s',$this->node,(is_numeric($_REQUEST['id']) && (int) $_REQUEST['id'] > 0 ? sprintf('&%s=%s',$this->id,(int) $_REQUEST['id']) : '')));
         }
-        $Snapin = $this->getClass('Snapin',is_numeric($_REQUEST['snapin']) ? $_REQUEST['snapin'] : 0);
+        $Snapin = $this->getClass('Snapin',(int) $_REQUEST['snapin']);
         $enableShutdown = $_REQUEST['shutdown'] ? true : false;
         $enableSnapins = $TaskType->get('id') != 17 ? ($Snapin instanceof Snapin && $Snapin->isValid() ? $Snapin->get('id') : -1) : false;
         $enableDebug = (bool)((isset($_REQUEST['debug']) && $_REQUEST['debug'] == 'true') || isset($_REQUEST['isDebugTask']));
         $scheduleDeployTime = $this->nice_date($_REQUEST['scheduleSingleTime']);
         $imagingTasks = in_array($TaskType->get('id'),array(1,2,8,15,16,17,24));
-        $passreset = trim(mb_convert_encoding($_REQUEST['account'],'UTF-8'));
+        $passreset = trim(htmlentities($_REQUEST['account'],ENT_QUOTES,'utf-8'));
         try {
             if (!$TaskType || !$TaskType->isValid()) throw new Exception(_('Task type is not valid'));
             $taskName = sprintf('%s Task',$TaskType->get('name'));
@@ -508,7 +517,7 @@ abstract class FOGPage extends FOGBase {
         unset($this->data,$this->headerData,$this->templates,$this->attributes);
         if (empty($useAD)) $useAD = ($this->obj instanceof Host ? $this->obj->get('useAD') : $_REQUEST['domain']);
         if (empty($ADDomain)) $ADDomain = ($this->obj instanceof Host ? $this->obj->get('ADDomain') : $_REQUEST['domainname']);
-        if (empty($ADOU)) $ADOU = trim(preg_replace('#;#','',($this->obj instanceof Host ? $this->obj->get('ADOU') : $_REQUEST['ou'])));
+        if (empty($ADOU)) $ADOU = trim(preg_replace('#;#','',($this->obj instanceof Host ? $this->obj->get('ADOU') : htmlentities($_REQUEST['ou'],ENT_QUOTES,'utf-8'))));
         if (empty($ADUser)) $ADUser = ($this->obj instanceof Host ? $this->obj->get('ADUser') : $_REQUEST['domainuser']);
         if (empty($ADPass)) $ADPass = ($this->obj instanceof Host ? $this->obj->get('ADPass') : $_REQUEST['domainpassword']);
         if (empty($ADPassLegacy)) $ADPassLegacy = ($this->obj instanceof Host ? $this->obj->get('ADPassLegacy') : $_REQUEST['domainpasswordlegacy']);
@@ -677,7 +686,7 @@ abstract class FOGPage extends FOGBase {
     }
     public function configure() {
         $randTime = mt_rand(0,90);
-        $setTime = intval($this->getSetting('FOG_SERVICE_CHECKIN_TIME'));
+        $setTime = (int) $this->getSetting('FOG_SERVICE_CHECKIN_TIME');
         $randTime += $setTime;
         unset($setTime);
         echo "#!ok\n#sleep=$randTime\n#force={$this->getSetting(FOG_TASK_FORCE_REBOOT)}\n#maxsize={$this->getSetting(FOG_CLIENT_MAXSIZE)}\n#promptTime={$this->getSetting(FOG_GRACE_TIMEOUT)}";
@@ -811,6 +820,7 @@ abstract class FOGPage extends FOGBase {
         if (count($this->data)) printf('<p class="c"><input type="submit" value="%s %ss %s %s" name="remhosts"/></p>',_('Delete Selected'),$ClassCall,_('From'),$this->node);
     }
     public function membership_post() {
+        if ($this->ajax) return;
         if (isset($_REQUEST['addHosts'])) $this->obj->addHost($_REQUEST['host']);
         if (isset($_REQUEST['remhosts'])) $this->obj->removeHost($_REQUEST['hostdel']);
         if ($this->obj->save(false)) {

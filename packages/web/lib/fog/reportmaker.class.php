@@ -19,7 +19,7 @@ class ReportMaker extends FOGBase {
         return $this;
     }
     public function addCSVCell($item) {
-        $this->strCSV[] = stripslashes(html_entity_decode(mb_convert_encoding($item,'UTF-8'),ENT_QUOTES,'UTF-8'));
+        $this->strCSV[] = stripslashes(html_entity_decode(htmlentities($item,ENT_QUOTES,'utf-8'),ENT_QUOTES,'utf-8'));
         return $this;
     }
     public function endCSVLine() {
@@ -32,13 +32,13 @@ class ReportMaker extends FOGBase {
         return $this;
     }
     public function outputReport($intType = 0) {
-        if (!isset($_REQUEST['export'])) $this->setFileName(mb_convert_encoding($_REQUEST['filename'],'UTF-8'));
-        $type = trim(mb_convert_encoding($_REQUEST['type'],'UTF-8'));
-        $pattern = sprintf('#^%s$#i',$type);
-        if ($intType !== false) $intType = (isset($_REQUEST['export']) ? 3 : $this->types[$type]);
-        else $intType = 0;
-        if (isset($_REQUEST['type']) && !preg_grep($pattern, array_keys($this->types))) die(_('Invalid type passed'));
-        switch (intval($intType)) {
+        $keys = array_keys($this->types);
+        $type = isset($_REQUEST['type']) ? $type = htmlentities($_REQUEST['type'],ENT_QUOTES,'utf-8') : $keys[$intType];
+        if (!in_array($type,$keys)) die(_('Invalid type'));
+        $file = basename(trim(htmlentities($_REQUEST['file'],ENT_QUOTES,'utf-8')));
+        if (!isset($_REQUEST['export'])) $this->setFileName($file);
+        $intType = ($intType !== false ? (isset($_REQUEST['export']) ? 3 : $this->types[$type]) : 0);
+        switch ((int) $intType) {
         case 0:
             echo implode("\n",(array)$this->strHTML);
             break;
@@ -86,7 +86,10 @@ class ReportMaker extends FOGBase {
                 header("Content-Length: $filesize");
                 header("Content-Disposition: attachment; filename=$filename");
                 if (false !== ($handle = fopen($filepath,'rb'))) {
-                    while (!feof($handle)) echo fread($handle,8*1024*1024);
+                    while (!feof($handle)) {
+                        $line = htmlentities(fread($handle,8*1024*1024),ENT_QUOTES,'utf-8');
+                        echo $line;
+                    }
                 }
                 exec ("rm -rf '$filepath'");
             }
