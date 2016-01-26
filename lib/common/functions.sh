@@ -418,27 +418,11 @@ configureMinHttpd() {
     configureHttpd
     echo "<?php die('This is a storage node, please do not access the web ui here!');" > "$webdirdest/management/index.php"
 }
-ubuntuPHPfix() {
-    dots echo
-    display_center "Fixing ubuntu php apt-get problem..." 
-    echo 
-    display_center "running autoremove to clean up apt..."
-    sudo apt-get autoremove --purge -y
-    echo 
-    display_center "removing php files..."
-    sudo rm -rf /etc/php5
-    echo 
-    display_center "removing ondrej sources from apt..."
-    sudo rm -rf /etc/apt-get/sources.d/*ondrej*
-    echo 
-    display_center "uninstalling php5..."
-    sudo apt-get purge php5* -y
-    echo 
-    display_center "cleaning up apt..."
-    sudo apt-get autoremove --purge -y
-    echo
-    display_center "Done uninstalling php for ubuntu, ready to install packages..."
-    dots
+addUbuntuRepo() {
+    DEBIAN_FRONTEND=noninteractive $packageinstaller python-software-properties software-properties-common >>/var/log/fog_error_${version}.log 2>&1
+    ntpdate pool.ntp.org >>/var/log/fog_error_${version}.log 2>&1
+    add-apt-repository -y ppa:ondrej/php5-5.6 >>/var/log/fog_error_${version}.log 2>&1
+    return $?
 }
 installPackages() {
     dots "Adding needed repository"
@@ -475,10 +459,7 @@ installPackages() {
                     fi
                     ;;
                 *)
-                    ubuntuPHPfix
-                    DEBIAN_FRONTEND=noninteractive $packageinstaller python-software-properties software-properties-common >>/var/log/fog_error_${version}.log 2>&1
-                    ntpdate pool.ntp.org >>/var/log/fog_error_${version}.log 2>&1
-                    add-apt-repository -y ppa:ondrej/php5-5.6 >>/var/log/fog_error_${version}.log 2>&1
+                    addUbuntuRepo
                     if [[ $? != 0 ]]; then
                         apt-get update >>/var/log/fog_error_${version}.log 2>&1
                         apt-get -yq install python-software-properties ntpdate >>/var/log/fog_error_${version}.log 2>&1
@@ -1393,27 +1374,8 @@ class Config {
      */
     private static function svc_setting() {
         define('UDPSENDERPATH','/usr/local/sbin/udp-sender');
-        define('MULTICASTLOGPATH','/opt/fog/log/multicast.log');
-        define('MULTICASTDEVICEOUTPUT','/dev/tty2');
-        define('MULTICASTSLEEPTIME',10);
         define('MULTICASTINTERFACE','${interface}');
         define('UDPSENDER_MAXWAIT',null);
-        define('LOGMAXSIZE',1000000);
-        define('REPLICATORLOGPATH','/opt/fog/log/fogreplicator.log');
-        define('REPLICATORDEVICEOUTPUT','/dev/tty3');
-        define('REPLICATORSLEEPTIME', 600);
-        define('REPLICATORIFCONFIG','/sbin/ifconfig');
-        define('SCHEDULERLOGPATH','/opt/fog/log/fogscheduler.log');
-        define('SCHEDULERDEVICEOUTPUT','/dev/tty4');
-        define('SCHEDULERSLEEPTIME',60);
-        define('SNAPINREPLOGPATH','/opt/fog/log/fogsnapinrep.log');
-        define('SNAPINREPDEVICEOUTPUT','/dev/tty5');
-        define('SNAPINREPSLEEPTIME',600);
-        define('SERVICELOGPATH','/opt/fog/log/servicemaster.log');
-        define('SERVICESLEEPTIME',3);
-        define('PINGHOSTLOGPATH','/opt/fog/log/pinghosts.log');
-        define('PINGHOSTDEVICEOUTPUT','/dev/tty5');
-        define('PINGHOSTSLEEPTIME',300);
     }
     /** @function init_setting() Initial values if fresh install are set here
      * NOTE: These values are only used on initial
@@ -1531,23 +1493,14 @@ configureDHCP() {
                 mv $dhcpconfig ${dhcpconfig}.fogbackup
             fi
             serverip=$(/sbin/ip -4 addr show $interface | awk -F'[ /]+' '/global/ {print $3}')
-            if [[ -z $serverip ]]; then
-                serverip=$(/sbin/ifconfig $interface | awk '/(cast)/ {print $2}' | cut -d ':' -f2 | head -n2 | tail -n1)
-            fi
+            [[ -z $serverip ]] && serverip=$(/sbin/ifconfig $interface | awk '/(cast)/ {print $2}' | cut -d ':' -f2 | head -n2 | tail -n1)
             network=$(mask2network $serverip $submask)
-            if [[ -z $startrange ]]; then
-                startrange=$(addToAddress $network)
-            fi
-            if [[ -z $endrange ]]; then
-                endrange=$(subtract1fromAddress $(interface2broadcast $interface))
-            fi
-            dhcptouse=$dhcpconfig
-            if [[ -f $dhcpconfigother ]]; then
-                dhcptouse=$dhcpconfigother
-            fi
-            if [[ -z $bootfilename ]]; then
-                bootfilename="undionly.kpxe"
-            fi
+            [[ -z $startrange ]] && startrange=$(addToAddress $network)
+            [[ -z $endrange ]] && endrange=$(subtract1fromAddress $(echo $(interface2broadcast $interface)))
+            [[ -f $dhcpconfig ]] && dhcptouse=$dhcpconfig
+            [[ -f $dhcpconfigother ]] && dhcptouse=$dhcpconfigother
+            [[ -z $dhcptouse || ! -f $dhcptouse ]] && echo "Failed";echo "Could not find dhcp config file"; exit 1
+            [[ -z $bootfilename ]] && bootfilename="undionly.kpxe"
             echo -e "# DHCP Server Configuration file\n#see /usr/share/doc/dhcp*/dhcpd.conf.sample\n# This file was created by FOG\n\n#Definition of PXE-specific options\n# Code 1: Multicast IP Address of bootfile\n# Code 2: UDP Port that client should monitor for MTFTP Responses\n# Code 3: UDP Port that MTFTP servers are using to listen for MTFTP requests\n# Code 4: Number of seconds a client must listen for activity before trying\n#         to start a new MTFTP transfer\n# Code 5: Number of seconds a client must listen before trying to restart\n#         a MTFTP transfer\n\n" > "$dhcptouse"
             echo -e "option space PXE;\noption PXE.mtftp-ip code 1 = ip-address;\noption PXE.mtftp-cport code 2 = unsigned integer 16;\noption PXE.mtftp-sport code 3 = unsigned integer 16;\noption PXE.mtftp-tmout code 4 = unsigned integer 8;\noption PXE.mtftp-delay code 5 = unsigned integer 8;\noption arch code 93 = unsigned integer 16; # RFC4578\n\n" >> "$dhcptouse"
             echo -e "use-host-decl-names on;\nddns-update-style interim;\nignore client-updates;\nnext-server $ipaddress;\n\n" >> "$dhcptouse"

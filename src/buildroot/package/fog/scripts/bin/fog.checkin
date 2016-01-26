@@ -29,18 +29,22 @@ fi
 if [[ $hostearly -eq 1 ]]; then
     HOSTNAME_EARLY=1
 fi
-if [[ $mc == yes ]]; then
-    method="UDPCAST"
-elif [[ $mc == bt ]]; then
-    method="Torrent-Casting"
-else
-    method="NFS"
-fi
+case $mc in
+    yes)
+        method="UDPCAST"
+        ;;
+    bt)
+        method="Torrent-CAST"
+        ;;
+    *)
+        method="NFS"
+        ;;
+esac
 debugPause
 echo
 verifyNetworkConnection
 dots "Checking Operating System"
-determineOS $osid
+determineOS "$osid"
 echo $osname
 dots "Checking CPU Cores"
 cores=$(nproc)
@@ -63,7 +67,7 @@ checkin() {
             echo "Failed"
             debugPause
             echo -n " * $res ("
-            sec2string $waittime
+            sec2string "$waittime"
             echo ")"
             let waittime+=5
             usleep 5000000
