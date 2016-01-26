@@ -162,7 +162,7 @@ class PrinterManagementPage extends FOGPage {
                 'printer_model'=>$_REQUEST['model'],
                 'printer_inf'=>$_REQUEST['inf'],
                 'printer_ip'=>$_REQUEST['ip'],
-                'printer_config'=>$_REQUEST['configFile'],
+                'printer_configFile'=>$_REQUEST['configFile'],
                 'desc'=>$_REQUEST['description'],
             );
         }
