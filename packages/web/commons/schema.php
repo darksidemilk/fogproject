@@ -252,7 +252,6 @@ INDEX `new_index3`(`utDateTime`)
                 `pAlias` varchar(250)  NOT NULL,
                 `pConfig` varchar(10)  NOT NULL,
                 `pIP` varchar(20)  NOT NULL,
-                `pConfigFile` varchar(250)  NOT NULL,
                 `pAnon2` varchar(10)  NOT NULL,
                 `pAnon3` varchar(10)  NOT NULL,
                 `pAnon4` varchar(10)  NOT NULL,
@@ -2140,3 +2139,7 @@ $this->schema[] = array(
 $this->schema[] = array(
     "INSERT INTO `".DATABASE_NAME."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory) VALUES ('FOG_BANDWIDTH_TIME', '"._("This setting defines how often to refresh the bandwidth chart.  Values are in seconds")."','1','General Settings')",
 );
+//209
+$this->schema[] = array(
+    "ALTER TABLE ".DATABASE_NAME."`.`printers` ADD `pConfigFile` VARCHAR(250) AFTER pIP;"
+    );
