@@ -24,9 +24,11 @@ jobs:
         gh release create $tag --latest --generate-notes --target stable
     - name: Sync-Branches
       run: | 
-        git checkout dev-branch
         echo 'sync dev-branch with stable branch (merge stable into dev-branch)...'
+        git pull origin dev-branch
+        git checkout dev-branch
         git merge stable
+        git push -u origin dev-branch
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
