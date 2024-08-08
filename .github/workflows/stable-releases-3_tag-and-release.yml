@@ -2,22 +2,34 @@ name: Stable Release Step 3 - Tag and Release
 
 on:
     workflow_dispatch:
-
+    pull_request:
+        branches:
+          - dev-branch
+        types:
+          - closed
+          
 jobs:
   Tag-and-release:
     runs-on: ubuntu-latest
     steps:
     - name: Check-out code to release
       uses: actions/checkout@v4
+          fetch-depth:0
     - name: Tag and release
       run: |
         echo 'find the version to create as a tag'
         system_file="$(git rev-parse --show-toplevel)/packages/web/lib/fog/system.class.php"
         tag=$(grep "define('FOG_VERSION'" $system_file | sed "s/.*FOG_VERSION', '\([^']*\)');/\1/")
-        echo 'create the tag and release probably like...'
+        echo 'create the tag and release...'
         gh release create $tag --latest --generate-notes --target stable
+    - name: Sync-Branches
+      run: | 
+        git checkout dev-branch
+        echo 'sync dev-branch with stable branch (merge stable into dev-branch)...'
+        git merge stable
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
 
 # on merge of monthly release pr
 # get/calculate current version
