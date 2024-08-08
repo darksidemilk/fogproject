@@ -4,7 +4,7 @@ on:
     workflow_dispatch:
 
 jobs:
-  Confirm-All-Tests-Passed:
+  Merge-After-All-Tests-Passed:
     runs-on: ubuntu-latest
     steps:
     - name: Check out code
@@ -12,9 +12,10 @@ jobs:
     - name: Merge The PR
       run: |
           echo "update dev-branch from stable";
-          chmod +x ./.githooks/pre-commit;
-          chmod +x ./.githooks/pre-merge-commit;
-          git config core.hooksPath .githooks;
+          git pull;
+          cp -af ./.githooks/pre-commit ./.git/hooks/pre-commit;
+          cp -af ./.githooks/pre-merge-commit ./.git/hooks/pre-merge-commit;
+          chmod +x ./.git/hooks/*
           gh pr update-branch dev-branch;
           echo "merge the pull request bringing dev-branch into stable";
           git pull;
