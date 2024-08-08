@@ -24,7 +24,7 @@ This gives us a Production, Staging, and Dev branches to follow standard devops 
 
 ### Version Format
 
-Our versions are formatted in a `x.x.x.x` format like so:
+Our versions are formatted in a `x.x.x.x` format per this example:
 
 `{CodeBaseMajor}.{Major}.{Minor}.{Patch}`
 
