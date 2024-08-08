@@ -11,6 +11,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Merge The PR with squash
       run: |
+          git config core.hooksPath .githooks;
           bash ./.githooks/pre-commit;
           gh pr merge dev-branch --squash;
       env:
