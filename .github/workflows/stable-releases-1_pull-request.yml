@@ -9,10 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+        fetch-depth:0
     - name: create pull request
       run: | 
-        system_file="$(git rev-parse --show-toplevel)/packages/web/lib/fog/system.class.php"
-        tag=$(grep "define('FOG_VERSION'" $system_file | sed "s/.*FOG_VERSION', '\([^']*\)');/\1/")
+        gitcom=$(git rev-list --tags --no-walk --max-count=1)
+        tagversion=$(git describe --tags ${gitcom})
+        baseversion=${tagversion%.*}   # Retain everything before the last segment
+        gitcount=$(git rev-list master..dev-branch --count) #get the gitcount from dev-branch instead
+        tag="${baseversion}.${gitcount}"
         gh pr create -B stable -H dev-branch --title "Stable Release PR - ${tag}" --body "Pull Request for creating the latest stable release from staged security fixes, bug fixes, and minor enhancements in dev-branch. Created as needed or monthly on 15th of every month, released once tests are passing"
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
