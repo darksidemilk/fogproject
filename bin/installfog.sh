@@ -35,7 +35,7 @@ fi
 
 [[ -z $OS ]] && OS=$(uname -s)
 if [[ ! $(echo "$OS" | tr [:upper:] [:lower:]) =~ "linux" ]]; then
-    echo "We do not currently support Installation on non-Linux Operating Systems"
+    echo "We do not currently support Installation on non-Linux Operating Systems, fog 2.0 hopes to be cross-platform though!"
     exit 2 # Fail OS Check
 fi 
 
