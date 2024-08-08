@@ -3,18 +3,16 @@ name: Stable Release Step 3 - Tag and Release
 on:
     workflow_dispatch:
     pull_request:
-        branches:
-          - dev-branch
         types:
           - closed
           
 jobs:
   Tag-and-release:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/stable'
     steps:
     - name: Check-out code to release
       uses: actions/checkout@v4
-          fetch-depth:0
     - name: Tag and release
       run: |
         echo 'find the version to create as a tag'
@@ -22,11 +20,11 @@ jobs:
         tag=$(grep "define('FOG_VERSION'" $system_file | sed "s/.*FOG_VERSION', '\([^']*\)');/\1/")
         echo 'create the tag and release...'
         gh release create $tag --latest --generate-notes --target stable
-    - name: Sync-Branches
-      run: | 
-        git checkout dev-branch
         echo 'sync dev-branch with stable branch (merge stable into dev-branch)...'
-        git merge stable
+        git pull origin dev-branch
+        git checkout dev-branch
+        git merge stable --commit -m "merge stable - ${tag} into dev"
+        git push -u origin dev-branch
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
