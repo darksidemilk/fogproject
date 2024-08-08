@@ -4,6 +4,12 @@
 
  FOG is a free open-source cloning/imaging/rescue suite/inventory management system. FOG can be used to image Windows XP, Vista, Windows 7, Window 8/8.1, and Windows 10, Windows 11 PCs using PXE, PartClone, and a Web GUI to tie it together. Includes features like memory and disk test, disk wipe, av scan, task scheduling, inventory management, remote deployment of OS's, and remote installation of software packages. Features can be triggered through the web GUI, once the client machine has been registered with FOG.
 
+## Release Tests
+
+[![Stable Release Step 1 - Create PR](https://github.com/darksidemilk/fogproject/actions/workflows/stable-releases-1_pull-request.yml/badge.svg?branch=stable)](https://github.com/darksidemilk/fogproject/actions/workflows/stable-releases-1_pull-request.yml)
+[![Stable Release Step 2 - Validate PR](https://github.com/darksidemilk/fogproject/actions/workflows/stable-releases-2_test-validity.yml/badge.svg)](https://github.com/darksidemilk/fogproject/actions/workflows/stable-releases-2_test-validity.yml)
+[![Stable Release Step 3 - Tag and Release](https://github.com/darksidemilk/fogproject/actions/workflows/stable-releases-3_tag-and-release.yml/badge.svg)](https://github.com/darksidemilk/fogproject/actions/workflows/stable-releases-3_tag-and-release.yml)
+
 ## Versioning and branches
 
 FOG uses a versioning schema that follows the general principles of semantic versioning with some adjustments to fit the development lifecycle.
