@@ -12,7 +12,7 @@ jobs:
     - name: Merge The PR with squash
       run: |
           git config core.hooksPath .githooks
-          gh pr merge --auto --squash;
+          gh pr merge dev-branch --squash;
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
