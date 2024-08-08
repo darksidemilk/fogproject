@@ -7,6 +7,7 @@ on:
 jobs:
   create-release-pull-request:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/stable'
     steps:
     - uses: actions/checkout@v4
       with:

@@ -10,6 +10,7 @@ on:
 jobs:
   Merge-After-All-Tests-Passed:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/stable'
     steps:
     - name: Check out code
       uses: actions/checkout@v4
