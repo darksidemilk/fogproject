@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-        fetch-depth:0
+        fetch-depth:'0'
     - name: create pull request
       run: | 
         gitcom=$(git rev-list --tags --no-walk --max-count=1)
