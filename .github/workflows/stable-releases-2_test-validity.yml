@@ -11,11 +11,14 @@ jobs:
       uses: actions/checkout@v4
     - name: Merge The PR
       run: |
-          echo "update dev-branch from stable";
+          echo "do a git pull";
           git pull;
-          cp -af ./.githooks/pre-commit ./.git/hooks/pre-commit;
-          cp -af ./.githooks/pre-merge-commit ./.git/hooks/pre-merge-commit;
-          chmod +x ./.git/hooks/*
+          echo "enable custom hooks";
+          #cp -af ./.githooks/pre-commit ./.git/hooks/pre-commit;
+          #cp -af ./.githooks/pre-merge-commit ./.git/hooks/pre-merge-commit;
+          chmod +x ./.githooks/*
+          git config core.hooksPath .githooks
+          echo "update dev-branch from stable";
           gh pr update-branch dev-branch;
           echo "merge the pull request bringing dev-branch into stable";
           git pull;
