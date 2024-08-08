@@ -12,12 +12,12 @@ jobs:
     - name: Merge The PR
       run: |
           echo "update dev-branch from stable"
-          git checkout dev-branch;
+          git checkout origin/dev-branch;
           git config core.hooksPath .githooks;
           bash .githooks/pre-commit;
           gh pr update-branch dev-branch
           echo "enable and explicitly run hooks in stable"
-          git checkout stable;
+          git checkout origin/stable;
           git config core.hooksPath .githooks;
           bash .githooks/pre-commit;
           echo "merge the pull request bringing dev-branch into stable"
