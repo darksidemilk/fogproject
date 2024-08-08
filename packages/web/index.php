@@ -1,6 +1,6 @@
 <?php
 /**
- * Redirects calls to index.php to main page.
+ * Redirects calls to index.php to main FOG page.
  *
  * PHP version 5
  *
@@ -11,7 +11,7 @@
  * @link     https://fogproject.org
  */
 /**
- * Redirects calls to index.php to main page.
+ * Redirects calls to index.php to main FOG page.
  *
  * @category Redirect
  * @package  FOGProject

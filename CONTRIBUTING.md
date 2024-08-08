@@ -177,7 +177,7 @@ For answers to common questions about this code of conduct, see the FAQ at
 
 1. Always create a pull request towards the latest development version. Currently this is `dev-branch`.
 
-2. Increase the version number in [system.class.php](https://github.com/FOGProject/fogproject/blob/10950be7694313df66409e459658e2a1d5e52d10/packages/web/lib/fog/system.class.php#L56) to the new version that this pull request would represent. The versioning scheme we use is [SemVer](https://semver.org/).
+2. Increase the version number in [system.class.php](https://github.com/FOGProject/fogproject/blob/10950be7694313df66409e459658e2a1d5e52d10/packages/web/lib/fog/system.class.php#L56) to the new version that this pull request would represent. The versioning scheme we use is Defined in our readme
 
 
 
