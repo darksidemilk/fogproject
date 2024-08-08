@@ -6,7 +6,7 @@
 #   This program is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
 #   the Free Software Foundation, either version 3 of the License, or
-#    any later version.
+#   any later version.
 #
 #   This program is distributed in the hope that it will be useful,
 #   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,7 +21,7 @@ cd $bindir
 workingdir=$(pwd)
 
 if [[ ! $EUID -eq 0 ]]; then
-    echo "FOG Installation must be run as root user"
+    echo "FOG Installation must be run as root user!"
     exit 1 # Fail Sudo
 fi
 
