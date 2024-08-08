@@ -4,7 +4,7 @@ on:
     workflow_dispatch:
 
 jobs:
-  Confirm-All-Tests-Passed:
+  Merge-After-All-Tests-Passed:
     runs-on: ubuntu-latest
     steps:
     - name: Check out code
