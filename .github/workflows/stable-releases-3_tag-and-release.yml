@@ -21,10 +21,8 @@ jobs:
         echo 'create the tag and release...'
         gh release create $tag --latest --generate-notes --target stable
         echo 'sync dev-branch with stable branch (merge stable into dev-branch)...'
-        git fetch origin dev-branch
-        git checkout dev-branch
-        git merge stable --commit -m "merge stable - ${tag} into dev"
-        git push origin dev-branch
+        gh pr create -B dev-branch -H stable --title "merge stable - ${tag} into dev" --body "Pull Request for syncing stable release commit back to dev after a release"
+        gh pr merge stable --subject "merge stable - ${tag} into dev";
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
