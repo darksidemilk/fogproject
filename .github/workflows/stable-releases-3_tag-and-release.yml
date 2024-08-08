@@ -14,7 +14,7 @@ jobs:
         echo 'find the version to create as a tag'
         tag=$(cat packages/web/lib/fog/system.class.php | grep -i 'FOG_VERSION' | grep -oP "(?<=define\('FOG_VERSION', ')[^']+(?='\))")
         echo 'create the tag and release probably like...'
-        gh release create $tag --notes-from-tag --latest --generate-notes --target stable
+        gh release create $tag --latest --generate-notes --target stable
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
