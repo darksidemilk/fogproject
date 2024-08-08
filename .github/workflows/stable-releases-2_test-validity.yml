@@ -20,7 +20,7 @@ jobs:
           #gh pr update-branch stable;
           #git pull;
           echo "merge the pull request bringing dev-branch into stable";
-          gh pr merge dev-branch --merge --subject 'Stable Release Merge';
+          gh pr merge dev-branch --squash --subject 'Stable Release Merge';
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
