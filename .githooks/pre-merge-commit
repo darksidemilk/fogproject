@@ -6,6 +6,7 @@
 # stderr if it wants to stop the merge commit.
 #
 # To enable this hook, rename this file to "pre-merge-commit".
+# this was taken verbatim from the example hook
 
 . git-sh-setup
 test -x "$GIT_DIR/hooks/pre-commit" &&
