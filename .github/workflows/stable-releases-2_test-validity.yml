@@ -12,6 +12,8 @@ jobs:
     - name: Merge The PR
       run: |
           echo "update dev-branch from stable";
+          chmod +x ./.githooks/pre-commit;
+          chmod +x ./.githooks/pre-merge-commit;
           git config core.hooksPath .githooks;
           gh pr update-branch dev-branch;
           echo "merge the pull request bringing dev-branch into stable";
