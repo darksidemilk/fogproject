@@ -12,7 +12,8 @@ jobs:
     - name: Tag and release
       run: |
         echo 'find the version to create as a tag'
-        tag=$(cat packages/web/lib/fog/system.class.php | grep -i 'FOG_VERSION' | grep -oP "(?<=define\('FOG_VERSION', ')[^']+(?='\))")
+        system_file="$(git rev-parse --show-toplevel)/packages/web/lib/fog/system.class.php"
+        tag=$(grep "define('FOG_VERSION'" $system_file | sed "s/.*FOG_VERSION', '\([^']*\)');/\1/")
         echo 'create the tag and release probably like...'
         gh release create $tag --latest --generate-notes --target stable
       env:
