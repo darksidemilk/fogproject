@@ -7,9 +7,12 @@ jobs:
   Confirm-All-Tests-Passed:
     runs-on: ubuntu-latest
     steps:
-    # - uses: actions/checkout@v4
-    - name: 'placeholder for confirming tests passed'
-      run: return true;
+    - name: Check out code
+      uses: actions/checkout@v4
+    - name: Merge The PR with squash
+      run: |
+          git config core.hooksPath .githooks
+          gh pr merge --auto --squash;
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
