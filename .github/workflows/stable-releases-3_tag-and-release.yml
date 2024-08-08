@@ -10,8 +10,8 @@ jobs:
   Tag-and-release:
     runs-on: ubuntu-latest
     if: |
-        github.ref == 'refs/heads/stable' && 
-        github.event.pull_request.merged == true
+        github.ref == 'refs/heads/stable' #&& 
+        # github.event.pull_request.merged == true
     steps:
     - name: Check-out code to release
       uses: actions/checkout@v4
