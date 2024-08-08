@@ -32,4 +32,5 @@ $report = unserialize($_SESSION['foglastreport']);
 if (!($report instanceof ReportMaker)) {
     $report = FOGCore::getClass('ReportMaker');
 }
+// a comment
 $report->outputReport();
