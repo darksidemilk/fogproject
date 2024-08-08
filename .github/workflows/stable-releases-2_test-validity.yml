@@ -9,13 +9,17 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v4
-    - name: Merge The PR with squash
+    - name: Merge The PR
       run: |
           echo "update dev-branch from stable"
-          gh pr update-branch dev-branch
-          echo "enable and explicitly run hooks"
+          git checkout dev-branch;
           git config core.hooksPath .githooks;
-          bash ./.githooks/pre-commit;
+          bash .githooks/pre-commit;
+          gh pr update-branch dev-branch
+          echo "enable and explicitly run hooks in stable"
+          git checkout stable;
+          git config core.hooksPath .githooks;
+          bash .githooks/pre-commit;
           echo "merge the pull request bringing dev-branch into stable"
           gh pr merge dev-branch --merge --subject 'Stable Release Merge';
       env:
