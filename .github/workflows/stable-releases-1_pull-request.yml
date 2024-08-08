@@ -13,6 +13,9 @@ jobs:
         fetch-depth: 0
     - name: create pull request
       run: | 
+        git pull origin master
+        git pull origin dev-branch
+        git pull origin stable
         gitcom=$(git rev-list --tags --no-walk --max-count=1)
         tagversion=$(git describe --tags ${gitcom})
         baseversion=${tagversion%.*}   # Retain everything before the last segment
