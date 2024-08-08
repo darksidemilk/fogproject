@@ -22,12 +22,10 @@ jobs:
         tag=$(grep "define('FOG_VERSION'" $system_file | sed "s/.*FOG_VERSION', '\([^']*\)');/\1/")
         echo 'create the tag and release...'
         gh release create $tag --latest --generate-notes --target stable
-    - name: Sync-Branches
-      run: | 
         echo 'sync dev-branch with stable branch (merge stable into dev-branch)...'
         git pull origin dev-branch
         git checkout dev-branch
-        git merge stable
+        git merge stable --commit -m "merge stable - ${tag} into dev"
         git push -u origin dev-branch
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
