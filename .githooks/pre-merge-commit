@@ -1,1 +1,3 @@
-
+#!/usr/bin/sh
+#run the pre-commit hook on merge commits too
+bash ./pre-commit
