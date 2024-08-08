@@ -18,15 +18,8 @@ jobs:
       uses: actions/checkout@v4
     - name: Merge The PR
       run: |
-          #echo "enable custom hooks";
-          #cp -af ./.githooks/pre-commit ./.git/hooks/pre-commit;
-          #cp -af ./.githooks/pre-merge-commit ./.git/hooks/pre-merge-commit;
-          #chmod +x ./.githooks/*
-          #git config core.hooksPath .githooks
-          #echo "update dev-branch from stable";
-          #gh pr update-branch stable;
-          #git pull;
           echo 'Get the tag'
+          git fetch origin dev-branch
           git checkout dev-branch
           system_file="$(git rev-parse --show-toplevel)/packages/web/lib/fog/system.class.php"
           tag=$(grep "define('FOG_VERSION'" $system_file | sed "s/.*FOG_VERSION', '\([^']*\)');/\1/")
