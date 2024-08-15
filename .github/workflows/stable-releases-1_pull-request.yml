@@ -37,6 +37,6 @@ jobs:
         run: |
           system_file="$(git rev-parse --show-toplevel)/packages/web/lib/fog/system.class.php"
           tag=$(grep "define('FOG_VERSION'" $system_file | sed "s/.*FOG_VERSION', '\([^']*\)');/\1/")
-          gh workflow run stable-releases-2_test-validity.yml -f name="$tag - Stable Releases Step 2"
+          gh workflow run stable-releases-2_test-validity.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
