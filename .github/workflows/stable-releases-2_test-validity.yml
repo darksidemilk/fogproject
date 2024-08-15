@@ -63,7 +63,7 @@ jobs:
         echo "merge the pull request bringing dev-branch into stable";
         gh pr merge dev-branch --squash --subject "Stable Release - ${tag}";
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.INSTALL_VALIDATION_REPO_TOKEN }}
     
   close-pr-if-tests-fail:
     needs: check-all-tests-completed-successfully
@@ -109,4 +109,4 @@ jobs:
       - name: Run tag and release workflow
         run: gh workflow run stable-releases-3_tag-and-release.yml
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.INSTALL_VALIDATION_REPO_TOKEN }}
