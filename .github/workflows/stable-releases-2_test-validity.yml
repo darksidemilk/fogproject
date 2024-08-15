@@ -109,4 +109,4 @@ jobs:
       - name: Run tag and release workflow
         run: gh workflow run stable-releases-3_tag-and-release.yml
         env:
-          GITHUB_TOKEN: ${{ secrets.INSTALL_VALIDATION_REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
