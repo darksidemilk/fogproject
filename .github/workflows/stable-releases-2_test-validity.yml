@@ -88,14 +88,14 @@ jobs:
           closure_message="Closing PR due to failure in tests"
           gh pr close --comment "$closure_message" ${{ env.PR_NUMBER }}
       
-      - name: Announce error on Discord
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          content: "Hey @everyone, validation tests failed. PR closed"
-          title: Validation tests
-          status: ${{ needs.check-all-tests-completed-successfully.result }}
-          color: 0xff0000
+      # - name: Announce error on Discord
+      #   uses: sarisia/actions-status-discord@v1
+      #   with:
+      #     webhook: ${{ secrets.DISCORD_WEBHOOK }}
+      #     content: "Hey @everyone, validation tests failed. PR closed"
+      #     title: Validation tests
+      #     status: ${{ needs.check-all-tests-completed-successfully.result }}
+      #     color: 0xff0000
 
   call-tag-and-release-workflow:
     needs: merge-after-all-tests-passed
@@ -107,6 +107,9 @@ jobs:
           ref: stable
 
       - name: Run tag and release workflow
-        run: gh workflow run stable-releases-3_tag-and-release.yml
+        run: |
+            system_file="$(git rev-parse --show-toplevel)/packages/web/lib/fog/system.class.php"
+            tag=$(grep "define('FOG_VERSION'" $system_file | sed "s/.*FOG_VERSION', '\([^']*\)');/\1/")
+            gh workflow run stable-releases-3_tag-and-release.yml -f name="$tag - Stable Releases Step 3 - tag and release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
