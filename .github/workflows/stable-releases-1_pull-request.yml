@@ -30,13 +30,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: dev-branch
 
       - name: Call test validity workflow
-        run: |
-          system_file="$(git rev-parse --show-toplevel)/packages/web/lib/fog/system.class.php"
-          tag=$(grep "define('FOG_VERSION'" $system_file | sed "s/.*FOG_VERSION', '\([^']*\)');/\1/")
-          gh workflow run stable-releases-2_test-validity.yml
+        run: gh workflow run stable-releases-2_test-validity.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
