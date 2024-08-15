@@ -2,8 +2,8 @@ name: Stable Release Step 1 - Create PR
 
 on:
   workflow_dispatch:
-  schedule:
-  - cron: "0 15 16 * *"
+  # schedule:
+  # - cron: "0 15 16 * *"
 
 jobs:
   create-release-pull-request:
