@@ -97,6 +97,7 @@ jobs:
       #     status: ${{ needs.check-all-tests-completed-successfully.result }}
       #     color: 0xff0000
 
+
   call-tag-and-release-workflow:
     needs: check-all-tests-completed-successfully
     runs-on: ubuntu-22.04
