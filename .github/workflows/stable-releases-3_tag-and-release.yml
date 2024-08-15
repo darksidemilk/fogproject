@@ -28,6 +28,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
   tag-and-release:
+    needs: merge-after-all-tests-passed
+  
     runs-on: ubuntu-22.04
     if: github.ref == 'refs/heads/stable' 
 
