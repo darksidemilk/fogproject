@@ -5,6 +5,28 @@ on:
     workflow_call:
           
 jobs:
+
+  merge-after-all-tests-passed:
+    runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/stable'
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    - name: Merge The PR
+      run: |
+        echo 'Get the tag'
+        git fetch origin dev-branch
+        git checkout dev-branch
+        system_file="$(git rev-parse --show-toplevel)/packages/web/lib/fog/system.class.php"
+        tag=$(grep "define('FOG_VERSION'" $system_file | sed "s/.*FOG_VERSION', '\([^']*\)');/\1/")
+        git checkout stable
+        echo "merge the pull request bringing dev-branch into stable";
+        gh pr merge dev-branch --squash --subject "Stable Release - ${tag}";
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
   tag-and-release:
     runs-on: ubuntu-22.04
     if: github.ref == 'refs/heads/stable' 
