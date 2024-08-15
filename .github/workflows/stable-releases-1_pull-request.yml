@@ -30,8 +30,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: dev-branch
 
       - name: Call test validity workflow
         run: gh workflow run stable-releases-2_test-validity.yml
